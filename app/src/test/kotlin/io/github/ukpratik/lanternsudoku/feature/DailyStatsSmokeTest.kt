@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 package io.github.ukpratik.lanternsudoku.feature
 
+import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
@@ -114,7 +115,7 @@ class DailyStatsSmokeTest {
         compose.onNode(hasContentDescription("$level: 1 completed", substring = true)).performScrollTo().assertExists()
         // The level chips filter the tiles (TC-164): another level has nothing.
         val other = if (level == "Easy") "Hard" else "Easy"
-        compose.onNodeWithText(other).performClick()
+        compose.onNode(hasText(other) and hasClickAction()).performClick() // the chip, not the by-level row
         compose.waitUntil(5_000) { compose.onAllNodes(hasContentDescription("0, Completed")).fetchSemanticsNodes().isNotEmpty() }
 
         // Daily tab: today's card reads Done with Share, and today's dot in the strip is done.

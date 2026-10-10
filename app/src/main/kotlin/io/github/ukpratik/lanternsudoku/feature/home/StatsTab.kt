@@ -2,6 +2,15 @@
 package io.github.ukpratik.lanternsudoku.feature.home
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.runtime.remember
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.rememberTextMeasurer
+import androidx.compose.ui.unit.Dp
+import io.github.ukpratik.lanternsudoku.ui.components.quiet
+import io.github.ukpratik.lanternsudoku.ui.components.spokenAs
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
@@ -42,7 +51,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
@@ -56,6 +64,7 @@ import io.github.ukpratik.lanternsudoku.data.StatsView
 import io.github.ukpratik.lanternsudoku.engine.model.Level
 import io.github.ukpratik.lanternsudoku.ui.components.PrimaryButton
 import io.github.ukpratik.lanternsudoku.ui.components.Tile
+import io.github.ukpratik.lanternsudoku.ui.components.TileDefaults
 import io.github.ukpratik.lanternsudoku.ui.components.formatElapsed
 import io.github.ukpratik.lanternsudoku.ui.components.label
 import io.github.ukpratik.lanternsudoku.ui.components.spokenElapsed
@@ -100,8 +109,14 @@ private fun FullStats(view: StatsView) {
         DailyBlock(view.daily)
         Spacer(Modifier.height(12.dp))
         Tiles(view.of(level))
-        Row(Modifier.fillMaxWidth().padding(start = 4.dp, end = 4.dp, top = 20.dp, bottom = 8.dp), verticalAlignment = Alignment.Bottom) {
-            Text(stringResource(R.string.stats_by_level), style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f).semantics { heading() })
+        // The note wraps under the heading when both don't fit on one line (200% text: "By level" never breaks, ISS-004).
+        FlowRow(
+            Modifier.fillMaxWidth().padding(start = 4.dp, end = 4.dp, top = 20.dp, bottom = 8.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            itemVerticalAlignment = Alignment.Bottom,
+        ) {
+            Text(stringResource(R.string.stats_by_level), style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier.padding(end = 12.dp).semantics { heading() })
             Text(stringResource(R.string.stats_by_level_note), style = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp),
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
@@ -138,16 +153,16 @@ private fun DailyBlock(daily: DailyStats) {
     val description = res.getString(R.string.streak_description, daily.current, daily.best, played)
     Column(
         Modifier.fillMaxWidth().clip(RoundedCornerShape(24.dp)).background(k.inkCard)
-            .clearAndSetSemantics { contentDescription = description },
+            .spokenAs(description),
     ) {
         Column(Modifier.padding(16.dp)) {
-            Text(stringResource(R.string.stats_daily_eyebrow), style = MaterialTheme.typography.labelSmall, color = k.onInkAccent)
+            Text(stringResource(R.string.stats_daily_eyebrow), style = MaterialTheme.typography.labelSmall, color = k.onInkAccent, modifier = quiet)
             Spacer(Modifier.height(8.dp))
             Row(Modifier.fillMaxWidth()) {
                 for ((value, label) in listOf(daily.current to R.string.stats_streak, daily.best to R.string.stats_best, daily.daysPlayed to R.string.stats_days_played)) {
                     Column(Modifier.weight(1f)) {
-                        Text(value.toString(), fontFamily = DisplayFamily, fontSize = 30.sp, color = k.onInk)
-                        Text(stringResource(label), style = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp), color = k.onInkMuted)
+                        Text(value.toString(), fontFamily = DisplayFamily, fontSize = 30.sp, color = k.onInk, modifier = quiet)
+                        Text(stringResource(label), style = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp), color = k.onInkMuted, modifier = quiet)
                     }
                 }
             }
@@ -167,11 +182,37 @@ private fun Tiles(s: LevelStats) {
         s.clean.toString() to R.string.stat_clean,
         (s.averageMs?.let(::formatElapsed) ?: none) to R.string.stat_average,
     )
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        for (row in tiles.chunked(3)) {
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                for ((value, label) in row) Tile(value, stringResource(label), Modifier.weight(1f))
+    val labelled = tiles.map { (value, label) -> value to stringResource(label) }
+    BoxWithConstraints {
+        val columns = tileColumns(labelled, maxWidth)
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            for (row in labelled.chunked(columns)) {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    for ((value, label) in row) Tile(value, label, Modifier.weight(1f))
+                    repeat(columns - row.size) { Spacer(Modifier.weight(1f)) }
+                }
             }
+        }
+    }
+}
+
+/**
+ * Three tiles a row, or fewer when a value or a single word of a label wouldn't fit a tile at this text size, so no
+ * word is ever broken ("Compl/eted", ISS-004). Design §3.1: tiles go 2-up with large text.
+ */
+@Composable
+private fun tileColumns(tiles: List<Pair<String, String>>, width: Dp): Int {
+    val measurer = rememberTextMeasurer()
+    val density = LocalDensity.current
+    val labelStyle = MaterialTheme.typography.bodyMedium.copy(fontSize = 12.sp)
+    val valueStyle = TextStyle(fontFamily = DisplayFamily, fontSize = 24.sp)
+    return remember(tiles, width, density, measurer) {
+        val widest = tiles.maxOf { (value, label) ->
+            val words = label.split(' ').maxOf { measurer.measure(it, labelStyle, softWrap = false).size.width }
+            maxOf(words, measurer.measure(value, valueStyle, softWrap = false).size.width)
+        }
+        with(density) {
+            listOf(3, 2).firstOrNull { n -> ((width - 8.dp * (n - 1)) / n - TileDefaults.PADDING * 2).roundToPx() >= widest } ?: 1
         }
     }
 }
@@ -181,47 +222,81 @@ private fun Tiles(s: LevelStats) {
 private fun LevelTable(view: StatsView) {
     val res = LocalResources.current
     val none = stringResource(R.string.stat_none)
+    val header = listOf(stringResource(R.string.stats_col_level), stringResource(R.string.stats_col_done), stringResource(R.string.stats_col_best),
+        stringResource(R.string.stats_col_avg))
+    val rows = Level.entries.map { l ->
+        val s = view.of(l)
+        val name = res.getString(l.label)
+        val spoken = res.getString(
+            R.string.stats_row_description, name, s.completed,
+            s.bestMs?.let { spokenElapsed(res, it) } ?: none, s.averageMs?.let { spokenElapsed(res, it) } ?: none,
+        )
+        listOf(name, s.completed.toString(), s.bestMs?.let(::formatElapsed) ?: none, s.averageMs?.let(::formatElapsed) ?: none) to spoken
+    }
     Surface(
         shape = RoundedCornerShape(24.dp), color = MaterialTheme.colorScheme.surfaceContainer, contentColor = MaterialTheme.colorScheme.onSurface,
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
     ) {
-        Column(Modifier.padding(vertical = 6.dp)) {
-            TableRow(
-                listOf(stringResource(R.string.stats_col_level), stringResource(R.string.stats_col_done), stringResource(R.string.stats_col_best),
-                    stringResource(R.string.stats_col_avg)),
-                header = true, description = null,
-            )
-            for (l in Level.entries) {
-                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-                val s = view.of(l)
-                val name = res.getString(l.label)
-                val best = s.bestMs?.let(::formatElapsed) ?: none
-                val avg = s.averageMs?.let(::formatElapsed) ?: none
-                val spoken = res.getString(
-                    R.string.stats_row_description, name, s.completed,
-                    s.bestMs?.let { spokenElapsed(res, it) } ?: none, s.averageMs?.let { spokenElapsed(res, it) } ?: none,
-                )
-                TableRow(listOf(name, s.completed.toString(), best, avg), header = false, description = spoken)
+        BoxWithConstraints {
+            val stacked = tableNeedsStacking(rows.map { it.first } + listOf(header), maxWidth - 32.dp)
+            Column(Modifier.padding(vertical = 6.dp)) {
+                TableRow(header, header = true, description = null, stacked = stacked)
+                for ((cells, spoken) in rows) {
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                    TableRow(cells, header = false, description = spoken, stacked = stacked)
+                }
             }
         }
     }
 }
 
+private val headerStyle @Composable get() = MaterialTheme.typography.labelMedium
+private val nameStyle @Composable get() = MaterialTheme.typography.titleMedium.copy(fontSize = 15.sp)
+private val valueStyle = TimerStyle.copy(fontSize = 15.sp)
+
+/** True when a level name or a value wouldn't fit its column on one line (large text on a narrow phone, ISS-004). */
 @Composable
-private fun TableRow(cells: List<String>, header: Boolean, description: String?) {
-    val style = if (header) MaterialTheme.typography.labelMedium else TimerStyle.copy(fontSize = 15.sp)
+private fun tableNeedsStacking(rows: List<List<String>>, width: Dp): Boolean {
+    val measurer = rememberTextMeasurer()
+    val density = LocalDensity.current
+    val header = headerStyle
+    val name = nameStyle
+    return remember(rows, width, density, measurer, header, name) {
+        val unit = with(density) { width.toPx() } / (1.4f + 3f)
+        rows.withIndex().any { (r, cells) ->
+            cells.withIndex().any { (i, text) ->
+                val style = when {
+                    r == rows.lastIndex -> header
+                    i == 0 -> name
+                    else -> valueStyle
+                }
+                measurer.measure(text, style, softWrap = false).size.width > unit * (if (i == 0) 1.4f else 1f)
+            }
+        }
+    }
+}
+
+/** One table row; [stacked] puts the level name on its own line above the three values (the header drops "Level"). */
+@Composable
+private fun TableRow(cells: List<String>, header: Boolean, description: String?, stacked: Boolean) {
+    val style = if (header) headerStyle else valueStyle
     val color = if (header) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface
-    Row(
-        Modifier.fillMaxWidth().heightIn(min = 44.dp).padding(horizontal = 16.dp)
-            .then(if (description != null) Modifier.clearAndSetSemantics { contentDescription = description } else Modifier),
-        verticalAlignment = Alignment.CenterVertically,
+    val textMod = if (description != null) quiet else Modifier
+    Column(
+        Modifier.fillMaxWidth().heightIn(min = 44.dp).padding(horizontal = 16.dp, vertical = if (stacked) 6.dp else 0.dp)
+            .then(if (description != null) Modifier.spokenAs(description) else Modifier),
+        verticalArrangement = Arrangement.Center,
     ) {
-        cells.forEachIndexed { i, text ->
-            Text(
-                text, style = if (i == 0 && !header) MaterialTheme.typography.titleMedium.copy(fontSize = 15.sp) else style, color = color,
-                textAlign = if (i == 0) TextAlign.Start else TextAlign.End,
-                modifier = Modifier.weight(if (i == 0) 1.4f else 1f),
-            )
+        if (stacked && !header) Text(cells[0], style = nameStyle, color = color, modifier = textMod)
+        Row(Modifier.fillMaxWidth().then(if (stacked) Modifier else Modifier.heightIn(min = 44.dp)), verticalAlignment = Alignment.CenterVertically) {
+            cells.forEachIndexed { i, text ->
+                if (i == 0 && stacked) return@forEachIndexed
+                Text(
+                    text, style = if (i == 0 && !header) nameStyle else style, color = color,
+                    textAlign = if (i == 0) TextAlign.Start else TextAlign.End,
+                    modifier = Modifier.weight(if (i == 0) 1.4f else 1f).then(textMod),
+                )
+            }
         }
     }
 }

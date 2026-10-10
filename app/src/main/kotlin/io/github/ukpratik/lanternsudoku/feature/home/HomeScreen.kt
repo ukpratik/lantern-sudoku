@@ -12,6 +12,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
@@ -387,7 +388,8 @@ private fun LevelRow(level: Level, badge: Int?, onClick: () -> Unit) {
         Pips(level.ordinal + 1)
         Spacer(Modifier.width(14.dp))
         Column(Modifier.weight(1f)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
+            // The badge wraps under the name when both don't fit (200% text, ISS-004).
+            FlowRow(itemVerticalAlignment = Alignment.CenterVertically) {
                 Text(stringResource(level.label), style = MaterialTheme.typography.titleMedium)
                 if (badge != null) {
                     Text(
