@@ -68,8 +68,6 @@ data class ContinueRow(
 /** The played set of a level (US-002). */
 data class PlayedRow(@ColumnInfo(name = "puzzle_id") val puzzleId: String, @ColumnInfo(name = "last_started") val lastStarted: Long)
 
-data class BlobRow(val id: Long, @ColumnInfo(name = "state_blob") val stateBlob: String?)
-
 /** A daily's row for the strip, today's card and the share text (US-014, US-016, US-017). */
 data class DailyRow(
     val id: Long,

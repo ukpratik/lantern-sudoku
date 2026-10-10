@@ -163,6 +163,40 @@ class GameRepositoryTest {
         assertThat(r.discardNotice.value).isFalse()
     }
 
+    /** ISS-006: a state_blob stored as an SQLite BLOB can't be read as text; it must not crash, only that row is set aside. */
+    @Test
+    fun ISS006_blobTypedSave_isDiscardedLikeACorruptOne_withoutCrashing() = runBlocking<Unit> {
+        val r = repo()
+        val done = r.startNew(Level.HARD)
+        r.write(SaveRequest.Complete(done, (r.load(done) as LoadResult.Ok).state, 60_000))
+        val good = r.startNew(Level.MEDIUM)
+        val blobTyped = r.startNew(Level.EASY)
+        db.openHelper.writableDatabase.execSQL(
+            "UPDATE games SET state_blob = CAST('{\"v\":1,\"x\":' AS BLOB) WHERE id = $blobTyped",
+        )
+        db.openHelper.writableDatabase.query("SELECT typeof(state_blob) FROM games WHERE id = $blobTyped").use {
+            it.moveToFirst()
+            assertThat(it.getString(0)).isEqualTo("blob")
+        }
+
+        assertThat(r.verifyInProgress()).isEqualTo(1)
+        assertThat(r.discardNotice.value).isTrue()
+        assertThat(db.gameDao().get(blobTyped)!!.status).isEqualTo(GameEntity.DISCARDED)
+        assertThat(r.load(good)).isInstanceOf(LoadResult.Ok::class.java)
+        assertThat(db.gameDao().get(done)!!.status).isEqualTo(GameEntity.COMPLETED) // stats are safe
+    }
+
+    /** ISS-006: opening such a row directly (before the start-up check ran) also takes the corrupt-save path. */
+    @Test
+    fun ISS006_loadingABlobTypedSave_discardsIt() = runBlocking<Unit> {
+        val r = repo()
+        val id = r.startNew(Level.EASY)
+        db.openHelper.writableDatabase.execSQL("UPDATE games SET state_blob = CAST('{\"v\":1}' AS BLOB) WHERE id = $id")
+        assertThat(r.load(id)).isInstanceOf(LoadResult.Discarded::class.java)
+        assertThat(r.discardNotice.value).isTrue()
+        assertThat(db.gameDao().get(id)!!.status).isEqualTo(GameEntity.DISCARDED)
+    }
+
     @Test
     fun completion_dropsTheBlob_andAStaleSaveCannotResurrectIt() = runBlocking<Unit> {
         val r = repo()

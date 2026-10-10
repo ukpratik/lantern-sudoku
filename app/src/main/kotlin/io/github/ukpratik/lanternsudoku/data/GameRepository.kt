@@ -22,6 +22,7 @@ import io.github.ukpratik.lanternsudoku.engine.save.StateCodec
 import io.github.ukpratik.lanternsudoku.engine.model.Level
 import io.github.ukpratik.lanternsudoku.engine.model.Pool
 import io.github.ukpratik.lanternsudoku.engine.model.PuzzleId
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -221,7 +222,9 @@ class GameRepository(
     }
 
     suspend fun load(gameId: Long): LoadResult = withContext(io) {
-        val row = dao.get(gameId) ?: return@withContext LoadResult.Missing
+        // A row whose save can't even be read (ISS-006) takes the same path as one that can't be decoded.
+        val row = readOrNull { dao.get(gameId) }.getOrElse { return@withContext discard(gameId, "unreadable row: ${it.javaClass.simpleName}") }
+            ?: return@withContext LoadResult.Missing
         if (row.status != GameEntity.IN_PROGRESS) return@withContext LoadResult.Missing
         val blob = row.stateBlob ?: return@withContext discard(gameId, "no blob")
         when (val r = StateCodec.decode(blob)) {
@@ -236,14 +239,28 @@ class GameRepository(
      */
     suspend fun verifyInProgress(): Int = withContext(io) {
         var discarded = 0
-        for (row in dao.inProgressBlobs()) {
-            val ok = row.stateBlob?.let { StateCodec.decode(it) } is DecodeResult.Ok
-            if (!ok) {
-                discard(row.id, "unreadable on start")
+        // Row by row, so one save that can't be read or decoded (corrupt text, a BLOB-typed value: ISS-006) is set aside
+        // on its own and never stops the app from starting; completed rows and stats are untouched.
+        for (id in dao.inProgressIds()) {
+            val blob = readOrNull { dao.stateBlob(id) }.getOrNull()
+            if (blob?.let(StateCodec::decode) !is DecodeResult.Ok) {
+                discard(id, "unreadable on start")
                 discarded++
             }
         }
         discarded
+    }
+
+    /**
+     * Reads one row's data; a read the database refuses (ISS-006) is null instead of an exception. SQLite errors are
+     * RuntimeExceptions (framework or driver); cancellation still propagates.
+     */
+    private suspend fun <T> readOrNull(read: suspend () -> T): Result<T> = try {
+        Result.success(read())
+    } catch (e: CancellationException) {
+        throw e
+    } catch (e: RuntimeException) {
+        Result.failure(e)
     }
 
     private suspend fun discard(gameId: Long, reason: String): LoadResult.Discarded {

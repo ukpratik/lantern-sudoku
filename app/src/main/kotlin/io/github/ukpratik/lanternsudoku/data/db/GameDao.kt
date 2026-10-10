@@ -39,8 +39,15 @@ interface GameDao {
     @Query("SELECT puzzle_id, MAX(started_at) AS last_started FROM games WHERE kind = 0 AND level = :level GROUP BY puzzle_id")
     suspend fun playedSet(level: Int): List<PlayedRow>
 
-    @Query("SELECT id, state_blob FROM games WHERE status = 0")
-    suspend fun inProgressBlobs(): List<BlobRow>
+    @Query("SELECT id FROM games WHERE status = 0")
+    suspend fun inProgressIds(): List<Long>
+
+    /**
+     * One row's save, read on its own so a value that can't be read as text (a BLOB-typed value from storage damage or
+     * tampering throws "Unable to convert BLOB to string") fails for that row only (ISS-006).
+     */
+    @Query("SELECT state_blob FROM games WHERE id = :id")
+    suspend fun stateBlob(id: Long): String?
 
     /** The autosave write (US-003): blob and summary in one atomic UPDATE. Returns the rows changed (0 = not in progress). */
     @Query(
