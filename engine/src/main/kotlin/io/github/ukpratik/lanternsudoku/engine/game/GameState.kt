@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 package io.github.ukpratik.lanternsudoku.engine.game
 
+import io.github.ukpratik.lanternsudoku.engine.hint.HintSession
 import io.github.ukpratik.lanternsudoku.engine.model.Grid
 import io.github.ukpratik.lanternsudoku.engine.model.Masks
 import io.github.ukpratik.lanternsudoku.engine.solve.BacktrackingSolver
@@ -36,6 +37,7 @@ enum class Status { PLAYING, LIMIT, ALMOST, COMPLETED }
 /**
  * Transient input state, never persisted (LLD §2.3). Invariant: `selection != null ⇒ lock == null` (US-005).
  * [highlight] is the "completed key tapped" highlight (US-005 row 10): no lock, digit highlighted only.
+ * [hint] is the open hint panel (US-012); while it's open the board and pad don't take input.
  */
 data class InputState(
     val selection: Int? = null,
@@ -43,6 +45,7 @@ data class InputState(
     val eraseMode: Boolean = false,
     val notesMode: Boolean = false,
     val highlight: Int? = null,
+    val hint: HintSession? = null,
 )
 
 /** Per-game counters. Never undone (US-007): a stage-3 hint isn't refunded and mistakes aren't erased. */

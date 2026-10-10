@@ -30,10 +30,15 @@ object HintSearch {
 
     private val ELIMINATORS = Technique.entries.filterNot { it.isSingle }
 
-    /** Searches from the true candidates of [board] (givens plus correct entries). Null means: use the fallback. */
-    fun search(board: Grid): LogicalHint? = search(CandidateGrid.of(board))
+    /**
+     * Searches from the true candidates of [board] (givens plus correct entries). Null means: use the fallback.
+     * [maxTier] limits the elimination techniques (4 = the whole ladder); the hint engine first stays within the
+     * puzzle's level so a Medium puzzle never names a Hard technique (D-032).
+     */
+    fun search(board: Grid, maxTier: Int = 4): LogicalHint? = search(CandidateGrid.of(board), maxTier)
 
-    fun search(start: CandidateGrid): LogicalHint? {
+    fun search(start: CandidateGrid, maxTier: Int = 4): LogicalHint? {
+        val eliminators = ELIMINATORS.filter { it.tier <= maxTier }
         val g = start.copy()
         val chain = ArrayList<Step>()
         for (depth in 0..MAX_CHAIN) {
@@ -42,7 +47,7 @@ object HintSearch {
                 return if (chain.size <= 1) LogicalHint(chain + single, single.placement!!) else prune(start, chain, single)
             }
             // Step 4: the simplest elimination instance (technique order, then scan order) that unlocks a single.
-            for (t in ELIMINATORS) {
+            for (t in eliminators) {
                 var hit: Pair<Step, Step>? = null
                 StepFinder.forEach(t, g) { elim ->
                     val look = g.copy()
@@ -57,7 +62,7 @@ object HintSearch {
             }
             // Step 5: nothing unlocks a single directly; apply the simplest elimination and look again.
             if (depth == MAX_CHAIN) break
-            val elim = StepFinder.next(g, ELIMINATORS.toSet()) ?: break
+            val elim = StepFinder.next(g, eliminators.toSet()) ?: break
             g.apply(elim)
             chain += elim
         }

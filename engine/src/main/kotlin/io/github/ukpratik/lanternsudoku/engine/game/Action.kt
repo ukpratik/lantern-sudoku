@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 package io.github.ukpratik.lanternsudoku.engine.game
 
-/** Player intents (LLD §4.7). Hint actions arrive with M3 (US-012), Fill notes with M6 (US-009). */
+/** Player intents (LLD §4.7). Fill notes arrives with M6 (US-009). */
 sealed interface Action {
     data class TapCell(val cell: Int) : Action
     data class TapDigit(val digit: Int) : Action
@@ -15,6 +15,22 @@ sealed interface Action {
     data object KeepLooking : Action
     data object KeepPlaying : Action
     data object Restart : Action
+
+    // Teaching hints (US-012). The panel's stage changes are actions so the counters live in the reducer.
+    /** Tap Hint: error first, else the simplest step, else the fallback (which places its digit at once). */
+    data object OpenHint : Action
+
+    /** The panel's primary button: Where → Why → Do it (stage 3 places or removes the digit). */
+    data object HintNext : Action
+
+    /** Tap an earlier stage in the stepper (1 or 2) before the digit is placed. */
+    data class HintStage(val stage: Int) : Action
+
+    /** A chain's "Step k of N" Next/Back (D-031): show step [step] (0-based). */
+    data class HintStep(val step: Int) : Action
+
+    /** Close, Got it or Done. Back does the same (design §8.2: the panel closes before anything else). */
+    data object CloseHint : Action
 }
 
 /** Settings that change how the reducer behaves (US-006, US-010). Read fresh at every action. */
