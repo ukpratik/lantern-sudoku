@@ -1,0 +1,19 @@
+/* SPDX-License-Identifier: GPL-3.0-or-later */
+/* Lantern Sudoku site: paper and ink, amber accent (design tokens, light and dark). */
+:root { --accent: #8A5300; --ink: #1E2A47; --muted: #5A6176; --bg: #FBF6EC; --card: #F3EADB; --line: #E4D7BE; }
+@media (prefers-color-scheme: dark) {
+  :root { --accent: #F4BE63; --ink: #ECE6DA; --muted: #A8A396; --bg: #14161D; --card: #1D2029; --line: #2E3342; }
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 17px/1.6 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+main { max-width: 720px; margin: 0 auto; padding: 40px 20px 64px; }
+a { color: var(--accent); }
+h1 { font-size: 2rem; line-height: 1.2; margin: 0 0 8px; }
+h2 { font-size: 1.15rem; margin: 32px 0 8px; }
+.muted { color: var(--muted); }
+.card { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 20px 24px; margin: 24px 0; }
+.brand { display: flex; align-items: center; gap: 12px; margin-bottom: 24px; font-weight: 700; font-size: 1.2rem; text-decoration: none; color: var(--ink); }
+.brand img { width: 40px; height: 40px; border-radius: 10px; }
+ul { padding-left: 1.2em; }
+li { margin: 6px 0; }
+footer { margin-top: 48px; font-size: 0.9rem; color: var(--muted); }
