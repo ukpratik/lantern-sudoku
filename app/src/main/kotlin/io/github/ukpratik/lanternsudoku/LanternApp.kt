@@ -19,5 +19,6 @@ class LanternApp : Application() {
             )
         }
         container = AppContainer(this)
+        container.settingsState // start reading settings now, off the main thread, for the first frame's theme
     }
 }

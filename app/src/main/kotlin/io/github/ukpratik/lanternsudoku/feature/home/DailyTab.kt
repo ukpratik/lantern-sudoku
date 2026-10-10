@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
@@ -116,7 +117,7 @@ private fun TodayCard(day: DailyDay, typicalMs: Long?, onPlay: (LocalDate) -> Un
             }
             Spacer(Modifier.height(14.dp))
             if (playable) {
-                PrimaryButton(action, { onPlay(day.date) }, icon = R.drawable.ic_play, modifier = Modifier.height(48.dp))
+                PrimaryButton(action, { onPlay(day.date) }, icon = R.drawable.ic_play, modifier = Modifier.heightIn(min = 48.dp))
             } else {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(action, style = MaterialTheme.typography.titleMedium, color = k.onInk, modifier = Modifier.weight(1f))

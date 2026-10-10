@@ -2,6 +2,7 @@
 package io.github.ukpratik.lanternsudoku.feature.home
 
 import androidx.activity.compose.BackHandler
+import androidx.activity.compose.ReportDrawnWhen
 import androidx.annotation.DrawableRes
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
@@ -99,10 +100,11 @@ import io.github.ukpratik.lanternsudoku.ui.theme.DisplayFamily
 import io.github.ukpratik.lanternsudoku.ui.theme.LanternColors
 import io.github.ukpratik.lanternsudoku.ui.theme.LocalLanternColors
 
-private enum class HomeTab(val label: Int, @param:DrawableRes val icon: Int) {
-    PLAY(R.string.tab_play, R.drawable.ic_grid),
-    DAILY(R.string.tab_daily, R.drawable.ic_calendar),
-    STATS(R.string.tab_stats, R.drawable.ic_insights),
+/** Active tab = filled icon (design §5 "Tabs", §6). */
+private enum class HomeTab(val label: Int, @param:DrawableRes val icon: Int, @param:DrawableRes val activeIcon: Int) {
+    PLAY(R.string.tab_play, R.drawable.ic_grid, R.drawable.ic_grid_filled),
+    DAILY(R.string.tab_daily, R.drawable.ic_calendar, R.drawable.ic_calendar_filled),
+    STATS(R.string.tab_stats, R.drawable.ic_insights, R.drawable.ic_insights_filled),
 }
 
 /** Home: Play · Daily · Stats as tab state in one destination (LLD §5). */
@@ -112,6 +114,8 @@ fun HomeScreen(vm: HomeViewModel, onOpenGame: (Long) -> Unit, onOpenSettings: ()
     val daily by vm.daily.collectAsStateWithLifecycle()
     val stats by vm.stats.collectAsStateWithLifecycle()
     var tab by rememberSaveable { mutableIntStateOf(HomeTab.PLAY.ordinal) }
+    // NFR-001: Home is "fully drawn" once the Play tab's summary has loaded (Macrobenchmark's timeToFullDisplay).
+    ReportDrawnWhen { state.loaded }
     val context = LocalContext.current
     val share: (ShareFacts) -> Unit = { ShareText.share(context, it) }
     LaunchedEffect(vm) {
@@ -148,6 +152,7 @@ fun HomeScreen(vm: HomeViewModel, onOpenGame: (Long) -> Unit, onOpenSettings: ()
                 val dailyDot = state.loaded && state.todayDaily.state == DayState.NOT_PLAYED
                 val dailyNotPlayed = stringResource(R.string.tab_daily_not_played)
                 for (t in HomeTab.entries) {
+                    val icon = if (tab == t.ordinal) t.activeIcon else t.icon
                     NavigationBarItem(
                         selected = tab == t.ordinal,
                         onClick = { tab = t.ordinal },
@@ -155,10 +160,10 @@ fun HomeScreen(vm: HomeViewModel, onOpenGame: (Long) -> Unit, onOpenSettings: ()
                             if (t == HomeTab.DAILY && dailyDot) {
                                 // The amber dot: today's puzzle hasn't been started (design §6 "Tabs"). Nothing else nags.
                                 BadgedBox(badge = { Badge(Modifier.size(9.dp), containerColor = MaterialTheme.colorScheme.primary) }) {
-                                    Icon(painterResource(t.icon), contentDescription = null)
+                                    Icon(painterResource(icon), contentDescription = null)
                                 }
                             } else {
-                                Icon(painterResource(t.icon), contentDescription = null)
+                                Icon(painterResource(icon), contentDescription = null)
                             }
                         },
                         modifier = if (t == HomeTab.DAILY && dailyDot) Modifier.semantics { contentDescription = dailyNotPlayed } else Modifier,
@@ -227,7 +232,7 @@ private fun PlayTab(state: HomeUiState, vm: HomeViewModel, onOpenSettings: () ->
 
 @Composable
 private fun AppBar(onOpenSettings: () -> Unit) {
-    Row(Modifier.fillMaxWidth().height(64.dp).padding(start = 16.dp, end = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+    Row(Modifier.fillMaxWidth().heightIn(min = 64.dp).padding(start = 16.dp, end = 4.dp), verticalAlignment = Alignment.CenterVertically) {
         BrandMark()
         Spacer(Modifier.width(10.dp))
         Text(stringResource(R.string.app_name), style = MaterialTheme.typography.titleLarge, modifier = Modifier.weight(1f).semantics { heading() })
@@ -306,7 +311,7 @@ private fun ContinueCard(card: ContinueSummary, k: LanternColors, onClick: () ->
                     style = MaterialTheme.typography.bodyMedium, color = k.onInkMuted,
                 )
                 Spacer(Modifier.height(12.dp))
-                PrimaryButton(stringResource(R.string.resume), onClick, icon = R.drawable.ic_play, modifier = Modifier.height(44.dp))
+                PrimaryButton(stringResource(R.string.resume), onClick, icon = R.drawable.ic_play, modifier = Modifier.heightIn(min = 44.dp))
             }
         }
     }
@@ -365,7 +370,7 @@ private fun TodayRow(day: DailyDay, onPlay: () -> Unit, onShare: (ShareFacts) ->
                     Text(stringResource(R.string.share), style = MaterialTheme.typography.labelLarge)
                 }
             } else if (!done) {
-                PrimaryButton(action, onPlay, icon = R.drawable.ic_play, modifier = Modifier.height(40.dp))
+                PrimaryButton(action, onPlay, icon = R.drawable.ic_play, modifier = Modifier.heightIn(min = 40.dp))
             }
         }
     }
@@ -441,7 +446,7 @@ internal fun ContinueOrNewSheet(saved: ContinueSummary, onContinue: () -> Unit, 
             PrimaryButton(stringResource(R.string.sheet_continue), onContinue, icon = R.drawable.ic_play,
                 modifier = Modifier.fillMaxWidth().height(56.dp))
             Spacer(Modifier.height(12.dp))
-            SecondaryButton(stringResource(R.string.sheet_start_new, level), onStartNew, Modifier.fillMaxWidth().height(56.dp))
+            SecondaryButton(stringResource(R.string.sheet_start_new, level), onStartNew, Modifier.fillMaxWidth().heightIn(min = 56.dp))
             Text(stringResource(R.string.sheet_fine_print), style = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp),
                 color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.Center,
                 modifier = Modifier.fillMaxWidth().padding(top = 12.dp))

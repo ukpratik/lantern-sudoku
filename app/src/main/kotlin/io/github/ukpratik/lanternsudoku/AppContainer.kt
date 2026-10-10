@@ -15,6 +15,10 @@ import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.stateIn
+import io.github.ukpratik.lanternsudoku.data.Settings
 
 /**
  * Manual dependency injection (ADR-007). Everything is `by lazy`, so nothing heavy happens at startup (NFR-001).
@@ -42,4 +46,7 @@ class AppContainer(context: Context) {
             appContext.preferencesDataStoreFile("settings")
         })
     }
+
+    /** Read once at start-up (LanternApp) so the first frame has the saved theme (LLD §2.2); null until then. */
+    val settingsState: StateFlow<Settings?> by lazy { settingsRepository.settings.stateIn(appScope, SharingStarted.Eagerly, null) }
 }

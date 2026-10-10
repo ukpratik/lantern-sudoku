@@ -41,6 +41,7 @@ import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -64,6 +65,8 @@ import io.github.ukpratik.lanternsudoku.engine.game.GameState
 import io.github.ukpratik.lanternsudoku.engine.hint.HintPlan
 import io.github.ukpratik.lanternsudoku.ui.components.PrimaryButton
 import io.github.ukpratik.lanternsudoku.ui.components.SecondaryButton
+import io.github.ukpratik.lanternsudoku.ui.components.focusOnAppear
+import io.github.ukpratik.lanternsudoku.feature.game.GameChrome.Companion.LARGE_TEXT
 import io.github.ukpratik.lanternsudoku.ui.theme.LocalLanternColors
 
 /**
@@ -107,7 +110,7 @@ fun HintPanel(game: GameState, onAction: (Action) -> Unit, modifier: Modifier = 
                         Text(
                             t.title,
                             style = MaterialTheme.typography.headlineSmall.copy(fontSize = 22.sp),
-                            modifier = Modifier.align(Alignment.CenterVertically).semantics {
+                            modifier = Modifier.align(Alignment.CenterVertically).focusOnAppear().semantics {
                                 heading()
                                 liveRegion = LiveRegionMode.Polite
                                 contentDescription = t.announcement
@@ -134,13 +137,21 @@ fun HintPanel(game: GameState, onAction: (Action) -> Unit, modifier: Modifier = 
                         modifier = Modifier.padding(top = 8.dp))
                 }
             }
-            Row(Modifier.fillMaxWidth().padding(top = 10.dp, bottom = 8.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                val secondary = if (h.stage == 3) Action.Undo else Action.CloseHint
-                SecondaryButton(text.secondary, { onAction(secondary) }, Modifier.weight(1f).height(52.dp).semantics { testTag = "hint-secondary" })
-                PrimaryButton(
-                    text.primary, { onAction(Action.HintNext) }, Modifier.weight(1f).height(52.dp).semantics { testTag = "hint-primary" },
-                    icon = if (h.stage == 2 && h.plan is HintPlan.Logical) R.drawable.ic_lightbulb else null,
-                )
+            val secondaryAction = if (h.stage == 3) Action.Undo else Action.CloseHint
+            val icon = if (h.stage == 2 && h.plan is HintPlan.Logical) R.drawable.ic_lightbulb else null
+            if (LocalDensity.current.fontScale >= LARGE_TEXT) {
+                // US-021: with large text the buttons stack full width (primary first) and grow with their labels.
+                Column(Modifier.fillMaxWidth().padding(top = 10.dp, bottom = 8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    PrimaryButton(text.primary, { onAction(Action.HintNext) },
+                        Modifier.fillMaxWidth().heightIn(min = 52.dp).semantics { testTag = "hint-primary" }, icon = icon)
+                    SecondaryButton(text.secondary, { onAction(secondaryAction) },
+                        Modifier.fillMaxWidth().heightIn(min = 52.dp).semantics { testTag = "hint-secondary" })
+                }
+            } else {
+                Row(Modifier.fillMaxWidth().padding(top = 10.dp, bottom = 8.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    SecondaryButton(text.secondary, { onAction(secondaryAction) }, Modifier.weight(1f).height(52.dp).semantics { testTag = "hint-secondary" })
+                    PrimaryButton(text.primary, { onAction(Action.HintNext) }, Modifier.weight(1f).height(52.dp).semantics { testTag = "hint-primary" }, icon = icon)
+                }
             }
         }
     }
@@ -152,6 +163,10 @@ private fun Stepper(stage: Int, onStage: (Int) -> Unit) {
     val scheme = MaterialTheme.colorScheme
     val names = listOf(stringResource(R.string.hint_stage_where), stringResource(R.string.hint_stage_why), stringResource(R.string.hint_stage_do))
     val description = stringResource(R.string.hint_stepper_cd)
+    // The stage numbers sit in fixed 24 dp discs, so they're sized in dp; the stage names are read by TalkBack and
+    // the explanation below follows the font scale (US-021).
+    val discText = with(LocalDensity.current) { 12.dp.toSp() }
+    val discStyle = MaterialTheme.typography.labelMedium.copy(fontSize = discText, lineHeight = discText)
     Row(Modifier.fillMaxWidth().semantics { contentDescription = description }, verticalAlignment = Alignment.CenterVertically) {
         for (n in 1..3) {
             val done = n < stage || stage == 3
@@ -183,11 +198,11 @@ private fun Stepper(stage: Int, onStage: (Int) -> Unit) {
                         contentAlignment = Alignment.Center,
                     ) {
                         Box(discMod.background(scheme.primaryContainer).border(1.5.dp, scheme.primary, CircleShape), contentAlignment = Alignment.Center) {
-                            Text("$n", style = MaterialTheme.typography.labelMedium, color = scheme.onPrimaryContainer)
+                            Text("$n", style = discStyle, color = scheme.onPrimaryContainer)
                         }
                     }
                     else -> Box(discMod.border(1.5.dp, scheme.outline, CircleShape), contentAlignment = Alignment.Center) {
-                        Text("$n", style = MaterialTheme.typography.labelSmall, color = scheme.onSurfaceVariant)
+                        Text("$n", style = discStyle.copy(letterSpacing = 0.sp), color = scheme.onSurfaceVariant)
                     }
                 }
                 Spacer(Modifier.width(6.dp))

@@ -7,6 +7,7 @@ import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -52,6 +53,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.painterResource
@@ -59,7 +61,9 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.testTag
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
@@ -88,14 +92,14 @@ import io.github.ukpratik.lanternsudoku.ui.board.BoardGeometry
 import io.github.ukpratik.lanternsudoku.ui.board.BoardModel
 import io.github.ukpratik.lanternsudoku.ui.board.CellLabels
 import io.github.ukpratik.lanternsudoku.ui.components.PrimaryButton
+import io.github.ukpratik.lanternsudoku.ui.components.focusOnAppear
+import androidx.compose.ui.semantics.heading
 import io.github.ukpratik.lanternsudoku.ui.components.formatElapsed
 import io.github.ukpratik.lanternsudoku.ui.components.label
 import io.github.ukpratik.lanternsudoku.ui.theme.GameTitleStyle
 import io.github.ukpratik.lanternsudoku.ui.theme.LocalLanternColors
 import io.github.ukpratik.lanternsudoku.ui.theme.TimerStyle
 
-private const val BAR = 56f
-private const val STATUS = 32f
 
 @Composable
 fun GameScreen(vm: GameViewModel, onLeave: () -> Unit, onOpenGame: (Long) -> Unit, onOpenSettings: () -> Unit) {
@@ -135,7 +139,8 @@ fun GameScreen(vm: GameViewModel, onLeave: () -> Unit, onOpenGame: (Long) -> Uni
             Box(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing))
         } else {
             BoxWithConstraints(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing), contentAlignment = Alignment.TopCenter) {
-                val geo = BoardGeometry.compute(maxWidth.value, maxHeight.value)
+                val chrome = GameChrome.of(LocalDensity.current, ui.settings.showTimer)
+                val geo = BoardGeometry.compute(maxWidth.value, maxHeight.value, chrome.extraRegular, chrome.extraCompact)
                 val completion = ui.completion
                 if (game.status == Status.COMPLETED && completion != null) {
                     val context = LocalContext.current
@@ -157,7 +162,9 @@ fun GameScreen(vm: GameViewModel, onLeave: () -> Unit, onOpenGame: (Long) -> Uni
                     settings = ui.settings,
                     paused = ui.paused,
                     saveFailed = ui.saveFailed,
+                    change = ui.change,
                     geo = geo,
+                    chrome = chrome,
                     availableHeight = maxHeight.value,
                     onRestart = { confirmRestart = true },
                     onOpenSettings = onOpenSettings,
@@ -193,7 +200,9 @@ private fun GameContent(
     settings: Settings,
     paused: Boolean,
     saveFailed: Boolean,
+    change: BoardChange?,
     geo: BoardGeometry,
+    chrome: GameChrome,
     availableHeight: Float,
     onRestart: () -> Unit,
     onOpenSettings: () -> Unit,
@@ -206,7 +215,7 @@ private fun GameContent(
     val resources = LocalResources.current
     val status = statusText(game) ?: HintCopy.of(resources, game)?.status
     // The space under the board: whatever is left, but never less than the controls need (then the column scrolls).
-    val above = BAR + (if (geo.compact) 8f else STATUS) + geo.board
+    val above = chrome.bar(geo.compact) + chrome.statusLine(geo.compact) + geo.board
     val minBottom = geo.controls - (above - geo.board)
     val bottom = maxOf(availableHeight - above, minBottom)
     Column(
@@ -216,14 +225,17 @@ private fun GameContent(
             levelName = title,
             elapsedMs = vm.elapsed.collectAsStateWithLifecycle().value,
             showTimer = settings.showTimer,
-            subtitle = if (geo.compact) status else null,
+            subtitle = if (geo.compact && !chrome.largeText) status else null,
+            height = chrome.bar(geo.compact),
+            largeText = chrome.largeText,
             paused = paused,
             onBack = onLeave, // the bar arrow leaves; system Back follows the priority order (design §8.2)
             onPause = { if (paused) vm.resume() else vm.pause() },
             onRestart = onRestart,
             onDebugNearSolved = vm::debugNearSolved,
         )
-        if (!geo.compact) StatusLine(status, game, settings) else Spacer(Modifier.height(8.dp))
+        if (geo.compact && !chrome.largeText) Spacer(Modifier.height(GameChrome.COMPACT_GAP.dp))
+        else StatusLine(status, game, settings, chrome.status, chrome.largeText)
         if (paused) {
             PauseCover(levelName, vm.elapsed.collectAsStateWithLifecycle().value, game.filledCount, vm::resume, onRestart, onOpenSettings, onLeave,
                 Modifier.fillMaxWidth().height((geo.board + bottom).dp))
@@ -246,6 +258,14 @@ private fun GameContent(
                 labels = cellLabels(resources, game, highlights, hintView),
                 onTapCell = { vm.onAction(Action.TapCell(it)) },
             )
+            // US-022: the last move, read politely by TalkBack ("Placed 4, row 2, column 8"). One stable live-region node
+            // whose text changes (instead of the deprecated View.announceForAccessibility); 1 dp, nothing drawn.
+            val said = change?.describe(resources).orEmpty()
+            Box(Modifier.align(Alignment.TopStart).size(1.dp).semantics {
+                liveRegion = LiveRegionMode.Polite
+                if (said.isNotEmpty()) contentDescription = said // no text, no stop for TalkBack's swipe order
+                testTag = "move-announcement"
+            })
         }
         Box(Modifier.fillMaxWidth().height(bottom.dp)) {
             val panel = when (game.status) {
@@ -254,12 +274,20 @@ private fun GameContent(
                 Status.COMPLETED -> PanelKind.COMPLETED
                 Status.PLAYING -> if (game.input.hint != null) PanelKind.HINT else PanelKind.PAD
             }
-            AnimatedContent(panel, transitionSpec = { fadeIn(tween(220)) togetherWith fadeOut(tween(150)) }, label = "pad-slot") { kind ->
+            // Design §7: 220 ms fade + 16 dp rise in, 150 ms fade out. Compose scales these by the system animator duration
+            // scale, so "Remove animations" makes the swap instant (reduced motion).
+            val rise = with(LocalDensity.current) { 16.dp.roundToPx() }
+            AnimatedContent(
+                panel,
+                transitionSpec = { (fadeIn(tween(220)) + slideInVertically(tween(220)) { rise }) togetherWith fadeOut(tween(150)) },
+                label = "pad-slot",
+            ) { kind ->
                 when (kind) {
                     PanelKind.PAD -> Column(Modifier.fillMaxSize()) {
                         Spacer(Modifier.weight(1f))
                         if (saveFailed) SaveFailedBar(vm::retrySave)
-                        Controls(game, geo.compact, k, vm::onAction)
+                        Controls(game, geo.compact, k, vm::onAction, height = chrome.pad(geo.compact).dp,
+                            toolHeight = chrome.toolHeight.dp, largeText = chrome.largeText)
                         Spacer(Modifier.height(if (geo.compact) 8.dp else 12.dp))
                     }
                     PanelKind.HINT -> HintPanel(game, vm::onAction)
@@ -295,6 +323,8 @@ private fun GameBar(
     elapsedMs: Long,
     showTimer: Boolean,
     subtitle: String?,
+    height: Float,
+    largeText: Boolean,
     paused: Boolean,
     onBack: () -> Unit,
     onPause: () -> Unit,
@@ -302,14 +332,20 @@ private fun GameBar(
     onDebugNearSolved: () -> Unit,
 ) {
     var menu by remember { mutableStateOf(false) }
-    Row(Modifier.fillMaxWidth().height(BAR.dp).padding(horizontal = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+    Row(Modifier.fillMaxWidth().height(height.dp).padding(horizontal = 4.dp), verticalAlignment = Alignment.CenterVertically) {
         IconButton(onClick = onBack) { Icon(painterResource(R.drawable.ic_arrow_back), contentDescription = stringResource(R.string.back)) }
         Column(Modifier.weight(1f).padding(start = 4.dp)) {
-            Row(verticalAlignment = Alignment.Bottom) {
-                Text(levelName, style = GameTitleStyle)
-                if (showTimer) {
-                    Spacer(Modifier.width(10.dp))
-                    Text(formatElapsed(elapsedMs), style = TimerStyle, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            if (largeText) {
+                // US-021: with large text the title may take two lines and the timer goes under it (GameChrome budget).
+                Text(levelName, style = GameTitleStyle, maxLines = 2)
+                if (showTimer) Text(formatElapsed(elapsedMs), style = TimerStyle, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
+            } else {
+                Row(verticalAlignment = Alignment.Bottom) {
+                    Text(levelName, style = GameTitleStyle, maxLines = 1, modifier = Modifier.weight(1f, fill = false))
+                    if (showTimer) {
+                        Spacer(Modifier.width(10.dp))
+                        Text(formatElapsed(elapsedMs), style = TimerStyle, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
+                    }
                 }
             }
             if (subtitle != null) Text(subtitle, style = MaterialTheme.typography.labelMedium.copy(fontSize = MaterialTheme.typography.labelSmall.fontSize), maxLines = 1)
@@ -347,30 +383,48 @@ private fun GameBar(
 
 /** The line under the bar: state in words (not colour alone) and the mistake counter (design game-idle). */
 @Composable
-private fun StatusLine(status: String?, game: GameState, settings: Settings) {
+private fun StatusLine(status: String?, game: GameState, settings: Settings, height: Float, largeText: Boolean) {
     val shown = settings.showMistakes || game.overrides.showMistakes
     val limitOn = settings.showMistakes && settings.mistakeLimit > 0 && !game.overrides.limitOff
-    Row(Modifier.fillMaxWidth().height(28.dp).padding(horizontal = 18.dp), verticalAlignment = Alignment.CenterVertically) {
+    val statusText: @Composable (Modifier) -> Unit = { m ->
         Text(
             status.orEmpty(),
             style = MaterialTheme.typography.labelMedium,
-            modifier = Modifier.weight(1f).semantics { liveRegion = LiveRegionMode.Polite },
-            maxLines = 1,
+            modifier = m.semantics { liveRegion = LiveRegionMode.Polite },
+            maxLines = if (largeText) 2 else 1,
         )
+    }
+    val mistakes: @Composable () -> Unit = {
         if (shown) {
             val n = game.counters.mistakes
-            if (n > 0) {
-                Box(Modifier.size(6.dp).clip(CircleShape).background(LocalLanternColors.current.danger))
-                Spacer(Modifier.width(6.dp))
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                if (n > 0) {
+                    Box(Modifier.size(6.dp).clip(CircleShape).background(LocalLanternColors.current.danger))
+                    Spacer(Modifier.width(6.dp))
+                }
+                Text(
+                    if (limitOn) stringResource(R.string.mistakes_of_limit, n, settings.mistakeLimit) else stringResource(R.string.mistakes_count, n),
+                    style = MaterialTheme.typography.bodyMedium.copy(fontSize = MaterialTheme.typography.labelMedium.fontSize),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                )
             }
-            Text(
-                if (limitOn) stringResource(R.string.mistakes_of_limit, n, settings.mistakeLimit) else stringResource(R.string.mistakes_count, n),
-                style = MaterialTheme.typography.bodyMedium.copy(fontSize = MaterialTheme.typography.labelMedium.fontSize),
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
         }
     }
-    Spacer(Modifier.height(4.dp))
+    if (largeText) {
+        // US-021: two lines for the state, the mistake count on its own line (GameChrome budget).
+        Column(Modifier.fillMaxWidth().height(height.dp).padding(horizontal = 18.dp, vertical = 4.dp)) {
+            statusText(Modifier)
+            Spacer(Modifier.weight(1f))
+            mistakes()
+        }
+    } else {
+        Row(Modifier.fillMaxWidth().height((height - 4).dp).padding(horizontal = 18.dp), verticalAlignment = Alignment.CenterVertically) {
+            statusText(Modifier.weight(1f))
+            mistakes()
+        }
+        Spacer(Modifier.height(4.dp))
+    }
 }
 
 @Composable
@@ -465,10 +519,11 @@ private fun PauseCover(
             Modifier.fillMaxWidth().clip(RoundedCornerShape(24.dp)).background(k.inkCard).padding(20.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            Text(stringResource(R.string.paused), style = MaterialTheme.typography.headlineSmall, color = k.onInk)
+            Text(stringResource(R.string.paused), style = MaterialTheme.typography.headlineSmall, color = k.onInk,
+                modifier = Modifier.focusOnAppear().semantics { heading() })
             Text(stringResource(R.string.paused_meta, levelName, formatElapsed(elapsedMs), filled), style = MaterialTheme.typography.bodyMedium,
                 color = k.onInkMuted, modifier = Modifier.padding(top = 4.dp, bottom = 16.dp))
-            PrimaryButton(stringResource(R.string.resume), onResume, icon = R.drawable.ic_play, modifier = Modifier.height(48.dp))
+            PrimaryButton(stringResource(R.string.resume), onResume, icon = R.drawable.ic_play, modifier = Modifier.heightIn(min = 48.dp))
         }
         Surface(shape = RoundedCornerShape(24.dp), color = MaterialTheme.colorScheme.surfaceContainer, contentColor = MaterialTheme.colorScheme.onSurface,
             border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)) {

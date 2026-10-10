@@ -41,6 +41,7 @@ import io.github.ukpratik.lanternsudoku.engine.game.BoardHighlights
 import io.github.ukpratik.lanternsudoku.engine.hint.HintView
 import io.github.ukpratik.lanternsudoku.engine.model.Masks
 import io.github.ukpratik.lanternsudoku.ui.theme.LanternColors
+import io.github.ukpratik.lanternsudoku.ui.theme.LocalDigitScale
 import io.github.ukpratik.lanternsudoku.ui.theme.UiFamily
 
 /** What one board frame shows: values, which are givens, notes, and the highlight flags (pure data for the canvas). */
@@ -60,7 +61,8 @@ class CellLabels(val description: (Int) -> String, val state: (Int) -> String?)
 
 /**
  * The board: one [Canvas] for drawing plus a 9 × 9 overlay of transparent nodes for taps and TalkBack (LLD §4.10).
- * Digits are sized from the cell (0.62 × cell, 0.74 with Larger digits in M5), never from the system font scale.
+ * Digits are sized from the cell (0.62 × cell, × 1.2 with Larger digits; notes 0.27 × cell × min(scale, 1.1)), never from
+ * the system font scale: `toSp()` divides the font scale back out (US-021, NFR-007).
  */
 @Composable
 fun Board(
@@ -70,11 +72,12 @@ fun Board(
     labels: CellLabels,
     onTapCell: (Int) -> Unit,
     modifier: Modifier = Modifier,
+    digitScale: Float = LocalDigitScale.current,
 ) {
     val measurer = rememberTextMeasurer(cacheSize = 64)
     val shape = RoundedCornerShape(6.dp)
     Box(modifier.size(size).clip(shape)) {
-        Canvas(Modifier.fillMaxSize()) { drawBoard(model, colors, measurer) }
+        Canvas(Modifier.fillMaxSize()) { drawBoard(model, colors, measurer, digitScale) }
         val cell = size / 9
         val interaction = remember { MutableInteractionSource() }
         Column(Modifier.fillMaxSize()) {
@@ -101,7 +104,7 @@ fun Board(
 }
 
 /** Draw order per LLD §4.10: fills → lines → glow/ring → digits and notes → marks. */
-private fun DrawScope.drawBoard(m: BoardModel, k: LanternColors, measurer: TextMeasurer) {
+private fun DrawScope.drawBoard(m: BoardModel, k: LanternColors, measurer: TextMeasurer, digitScale: Float) {
     val cs = size.width / 9f
     val h = m.highlights
     drawRect(k.cell)
@@ -177,8 +180,8 @@ private fun DrawScope.drawBoard(m: BoardModel, k: LanternColors, measurer: TextM
     }
 
     // 4. Digits and notes.
-    val digitStyle = TextStyle(fontFamily = UiFamily, fontSize = (cs * DIGIT_RATIO).toSp())
-    val noteStyle = TextStyle(fontFamily = UiFamily, fontWeight = FontWeight.Medium, fontSize = (cs * NOTE_RATIO).toSp())
+    val digitStyle = TextStyle(fontFamily = UiFamily, fontSize = (cs * DIGIT_RATIO * digitScale).toSp())
+    val noteStyle = TextStyle(fontFamily = UiFamily, fontWeight = FontWeight.Medium, fontSize = (cs * NOTE_RATIO * minOf(digitScale, NOTE_SCALE_CAP)).toSp())
     for (i in 0 until 81) {
         val o = cellOrigin(i, cs)
         val v = m.values[i]
@@ -262,3 +265,4 @@ private fun DrawScope.drawCentered(layout: TextLayoutResult, color: Color, cente
 
 private const val DIGIT_RATIO = 0.62f
 private const val NOTE_RATIO = 0.27f
+private const val NOTE_SCALE_CAP = 1.1f // nine marks must still fit (design-system §3.1)

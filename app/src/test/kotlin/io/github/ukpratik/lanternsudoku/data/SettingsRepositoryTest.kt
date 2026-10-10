@@ -35,4 +35,20 @@ class SettingsRepositoryTest {
         assertThat(s.rules.showMistakes).isFalse() // the reducer suspends the limit (PRD v1.3)
         assertThat(runCatching { repo.setMistakeLimit(4) }.isFailure).isTrue()
     }
+
+    @Test
+    fun TC168_TC182_themeHighContrastAndLargerDigits_defaultOff_andPersist() = runTest {
+        val repo = tmp.repo(backgroundScope)
+        val d = repo.settings.first()
+        assertThat(d.theme).isEqualTo(ThemeMode.SYSTEM) // follow system by default (US-020)
+        assertThat(d.highContrast).isFalse()
+        assertThat(d.largeDigits).isFalse()
+        repo.setTheme(ThemeMode.DARK)
+        repo.setHighContrast(true)
+        repo.setLargeDigits(true)
+        val s = repo.settings.first()
+        assertThat(s.theme).isEqualTo(ThemeMode.DARK)
+        assertThat(s.highContrast).isTrue()
+        assertThat(s.largeDigits).isTrue()
+    }
 }

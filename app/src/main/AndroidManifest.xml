@@ -21,9 +21,13 @@
         android:theme="@style/Theme.Lantern"
         tools:targetApi="36">
 
+        <!-- PRD: portrait phones. Android 16 ignores the lock at sw >= 600 dp, where the layout shows the centred
+             portrait column (design-system §4.1, game-large-screen). -->
         <activity
             android:name=".MainActivity"
-            android:exported="true">
+            android:exported="true"
+            android:screenOrientation="portrait"
+            tools:ignore="DiscouragedApi,LockedOrientationActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />

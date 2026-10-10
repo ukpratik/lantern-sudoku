@@ -77,6 +77,12 @@
     <string name="cell_empty">Row %1$d, column %2$d, empty</string>
     <string name="cell_notes">Row %1$d, column %2$d, empty, notes %3$s</string>
     <string name="cell_selected">selected</string>
+    <!-- TalkBack live region after a move (US-022); row and column are 1-based. -->
+    <string name="announce_placed" tools:ignore="PluralsCandidate">Placed %1$d, row %2$d, column %3$d</string>
+    <string name="announce_erased" tools:ignore="PluralsCandidate">Erased row %1$d, column %2$d</string>
+    <string name="announce_note_added" tools:ignore="PluralsCandidate">Note %1$d added, row %2$d, column %3$d</string>
+    <string name="announce_note_removed" tools:ignore="PluralsCandidate">Note %1$d removed, row %2$d, column %3$d</string>
+    <string name="announce_blocked" tools:ignore="PluralsCandidate">Row %1$d, column %2$d has %3$d. %4$d is locked.</string>
     <string name="cell_conflict">conflict</string>
     <string name="cell_mistake">mistake</string>
 
@@ -116,7 +122,20 @@
     <string name="open_failed">Couldn\'t open a puzzle. Try another level.</string>
 
     <!-- Settings (US-010 only in M2; the full screen is US-023 in M6) -->
-    <string name="settings_mistakes_header">Mistakes</string>
+    <string name="settings_mistakes_header">Play</string>
+    <string name="settings_appearance_header">Appearance</string>
+    <string name="settings_theme">Theme</string>
+    <string name="settings_theme_system">System</string>
+    <string name="settings_theme_light">Light</string>
+    <string name="settings_theme_dark">Dark</string>
+    <string name="settings_high_contrast">High contrast</string>
+    <string name="settings_high_contrast_summary">Stronger lines and colour-blind-safe colours</string>
+    <string name="settings_larger_digits">Larger digits</string>
+    <string name="settings_larger_digits_summary">Bigger numbers on the board and keys</string>
+    <string name="settings_about_header">About</string>
+    <string name="settings_privacy">Privacy</string>
+    <string name="settings_privacy_summary">We never collect your data. Android backup can copy it to your Google account.</string>
+    <string name="settings_version">Version %1$s</string>
     <string name="settings_show_mistakes">Show mistakes</string>
     <string name="settings_show_mistakes_summary">Mark digits that don\'t match the solution</string>
     <string name="settings_mistake_limit">Mistake limit</string>

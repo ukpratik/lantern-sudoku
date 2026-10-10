@@ -10,6 +10,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -23,6 +24,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -34,6 +36,7 @@ import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
@@ -44,7 +47,10 @@ import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.onLongClick
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.testTag
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.LineHeightStyle
+import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -52,17 +58,30 @@ import io.github.ukpratik.lanternsudoku.R
 import io.github.ukpratik.lanternsudoku.engine.game.Action
 import io.github.ukpratik.lanternsudoku.engine.game.GameState
 import io.github.ukpratik.lanternsudoku.ui.theme.LanternColors
+import io.github.ukpratik.lanternsudoku.ui.theme.LocalDigitScale
 import io.github.ukpratik.lanternsudoku.ui.theme.LocalLanternColors
 import io.github.ukpratik.lanternsudoku.ui.theme.UiFamily
 
-/** 3×3 number pad + tool column (design §5). Regular: 256 dp tall; compact: 168 dp with a 2-column tool grid. */
+/**
+ * 3×3 number pad + tool column (design §5). Regular: 256 dp tall; compact: 168 dp with a 2-column tool grid. With large
+ * text (US-021) tool labels move under their icons and [height]/[toolHeight] come from [GameChrome]; keys stretch to
+ * the tools' height.
+ */
 @Composable
-fun Controls(game: GameState, compact: Boolean, colors: LanternColors, onAction: (Action) -> Unit, modifier: Modifier = Modifier) {
-    val height = if (compact) 168.dp else 256.dp
+fun Controls(
+    game: GameState,
+    compact: Boolean,
+    colors: LanternColors,
+    onAction: (Action) -> Unit,
+    modifier: Modifier = Modifier,
+    height: Dp = if (compact) 168.dp else 256.dp,
+    toolHeight: Dp = 48.dp,
+    largeText: Boolean = false,
+) {
     Row(modifier.fillMaxWidth().height(height).padding(horizontal = 16.dp)) {
         NumberPad(game, compact, colors, onAction, Modifier.weight(1f).fillMaxHeight())
         Spacer(Modifier.width(12.dp))
-        if (compact) ToolGrid(game, onAction) else ToolColumn(game, onAction)
+        if (compact) ToolGrid(game, onAction, toolHeight, largeText) else ToolColumn(game, onAction, toolHeight, largeText)
     }
 }
 
@@ -110,6 +129,13 @@ private fun NumberKey(
 ) {
     val complete = remaining == 0
     val shape = RoundedCornerShape(16.dp)
+    // Key digits scale with Larger digits only, never the system font scale (design §3.1: 30 → 36): sized in dp and
+    // converted with the density's own (possibly non-linear) font-scale curve. The count is capped at 1.3× system scale.
+    val density = LocalDensity.current
+    val digitScale = LocalDigitScale.current
+    val keyDigit = with(density) { ((if (compact) 26 else 30).dp * digitScale).toSp() }
+    val noteDigitDp = 19.dp
+    val countSize = with(density) { (12.5.dp * minOf(fontScale, 1.3f)).toSp() }
     val description = when {
         complete -> stringResource(R.string.key_complete, digit)
         locked -> stringResource(R.string.key_locked, digit, remaining)
@@ -160,13 +186,16 @@ private fun NumberKey(
             // The digit drops to pencil size at its note position (1 top-left … 9 bottom-right).
             val col = (digit - 1) % 3
             val row = (digit - 1) / 3
-            Box(Modifier.fillMaxSize().padding(start = 10.dp, end = 10.dp, top = 6.dp, bottom = 20.dp)) {
+            BoxWithConstraints(Modifier.fillMaxSize().padding(start = 10.dp, end = 10.dp, top = 6.dp, bottom = 20.dp)) {
+                // Three rows of pencil digits must fit the key (compact keys are 52 dp): shrink below 19 dp if needed.
+                val size = with(density) { minOf(noteDigitDp * digitScale, maxHeight / 3).toSp() }
                 Text(
                     digit.toString(),
                     color = fg,
                     fontFamily = UiFamily,
                     fontWeight = FontWeight.SemiBold,
-                    fontSize = 19.sp,
+                    fontSize = size,
+                    style = tightLine(size),
                     modifier = Modifier.align(
                         when (row * 3 + col) {
                             0 -> Alignment.TopStart
@@ -198,7 +227,8 @@ private fun NumberKey(
                     complete -> FontWeight.Normal
                     else -> FontWeight.Medium
                 },
-                fontSize = if (compact) 26.sp else 30.sp,
+                fontSize = keyDigit,
+                style = tightLine(keyDigit),
                 modifier = Modifier.align(Alignment.Center),
             )
         }
@@ -210,11 +240,22 @@ private fun NumberKey(
             if (complete) {
                 Icon(painterResource(R.drawable.ic_check), contentDescription = null, tint = countColor, modifier = Modifier.size(16.dp))
             } else {
-                Text(remaining.toString(), color = countColor, fontFamily = UiFamily, fontWeight = FontWeight.Bold, fontSize = 12.5.sp)
+                Text(remaining.toString(), color = countColor, fontFamily = UiFamily, fontWeight = FontWeight.Bold, fontSize = countSize,
+                    style = tightLine(countSize))
             }
         }
     }
 }
+
+/**
+ * Key glyphs set their own line height: MaterialTheme provides body-large's 23 sp line height to every Text, which at
+ * 200% font scale would make a fixed-size key digit's line box far taller than the key (US-021).
+ */
+@Composable
+private fun tightLine(size: TextUnit): TextStyle = LocalTextStyle.current.copy(
+    lineHeight = size,
+    lineHeightStyle = LineHeightStyle(LineHeightStyle.Alignment.Center, LineHeightStyle.Trim.Both),
+)
 
 private data class Tool(
     val tag: String,
@@ -236,7 +277,7 @@ private fun tools(game: GameState): List<Tool> {
         Tool("erase", R.drawable.ic_erase, R.string.tool_erase, on = game.input.eraseMode, action = Action.TapErase),
         Tool(
             "notes",
-            R.drawable.ic_notes,
+            if (game.input.notesMode) R.drawable.ic_notes_filled else R.drawable.ic_notes,
             R.string.tool_notes,
             sub = if (game.input.notesMode) R.string.on else R.string.off,
             on = game.input.notesMode,
@@ -247,28 +288,31 @@ private fun tools(game: GameState): List<Tool> {
 }
 
 @Composable
-private fun ToolColumn(game: GameState, onAction: (Action) -> Unit) {
-    Column(Modifier.width(100.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        for (t in tools(game)) ToolButton(t, compact = false, onAction = onAction, modifier = Modifier.fillMaxWidth())
+private fun ToolColumn(game: GameState, onAction: (Action) -> Unit, toolHeight: Dp, largeText: Boolean) {
+    Column(Modifier.width(if (largeText) 112.dp else 100.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        for (t in tools(game)) ToolButton(t, stacked = largeText, height = toolHeight, onAction = onAction, modifier = Modifier.fillMaxWidth())
     }
 }
 
 @Composable
-private fun ToolGrid(game: GameState, onAction: (Action) -> Unit) {
+private fun ToolGrid(game: GameState, onAction: (Action) -> Unit, toolHeight: Dp, largeText: Boolean) {
     val all = tools(game)
-    Column(Modifier.width(116.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+    Column(Modifier.width(if (largeText) 160.dp else 116.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
         for (pair in all.take(4).chunked(2)) {
             Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                for (t in pair) ToolButton(t, compact = true, onAction = onAction, modifier = Modifier.weight(1f))
+                for (t in pair) ToolButton(t, stacked = true, height = toolHeight, onAction = onAction, modifier = Modifier.weight(1f), small = !largeText)
             }
         }
-        ToolButton(all[4], compact = false, onAction = onAction, modifier = Modifier.fillMaxWidth())
+        ToolButton(all[4], stacked = largeText, height = toolHeight, onAction = onAction, modifier = Modifier.fillMaxWidth())
     }
 }
 
-/** Tool button (design §5): icon + label, 48 dp; disabled at 42% with the label kept; "on" = amber-soft pill + outline. */
+/**
+ * Tool button (design §5): icon + label, 48 dp; disabled at 42% with the label kept; "on" = amber-soft pill + outline
+ * (+ filled icon for Notes). [stacked] puts the label under the icon (compact grid, and large text, design §3.1).
+ */
 @Composable
-private fun ToolButton(t: Tool, compact: Boolean, onAction: (Action) -> Unit, modifier: Modifier) {
+private fun ToolButton(t: Tool, stacked: Boolean, height: Dp, onAction: (Action) -> Unit, modifier: Modifier, small: Boolean = false) {
     val scheme = MaterialTheme.colorScheme
     val label = stringResource(t.label)
     val state = when {
@@ -279,7 +323,7 @@ private fun ToolButton(t: Tool, compact: Boolean, onAction: (Action) -> Unit, mo
     }
     val shape = RoundedCornerShape(14.dp)
     val base = modifier
-        .height(48.dp)
+        .height(height)
         .clip(shape)
         .then(if (t.on) Modifier.background(scheme.secondaryContainer).border(BorderStroke(1.5.dp, scheme.primary), shape) else Modifier)
         .clickable(enabled = t.enabled && t.action != null, role = Role.Button) { t.action?.let(onAction) }
@@ -291,13 +335,14 @@ private fun ToolButton(t: Tool, compact: Boolean, onAction: (Action) -> Unit, mo
             if (t.enabled && t.action != null) onClick { onAction(t.action); true }
         }
         .alpha(if (t.enabled) 1f else 0.42f)
-    val iconSize: Dp = if (compact) 20.dp else 22.dp
-    if (compact) {
+    val iconSize: Dp = if (small) 20.dp else 22.dp
+    if (stacked) {
         Column(base, horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
             Icon(painterResource(t.icon), contentDescription = null, tint = t.tint ?: scheme.onSurface, modifier = Modifier.size(iconSize))
+            // Compact keeps "Notes Off" at 11 sp; large text shows the name only (On = pill + filled icon; TalkBack says it).
             Text(
-                if (t.sub != null) "$label ${stringResource(t.sub)}" else label,
-                style = MaterialTheme.typography.labelMedium.copy(fontSize = 11.sp),
+                if (t.sub != null && small) "$label ${stringResource(t.sub)}" else label,
+                style = if (small) MaterialTheme.typography.labelMedium.copy(fontSize = 11.sp) else MaterialTheme.typography.labelMedium,
                 maxLines = 1,
             )
         }

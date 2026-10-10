@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
@@ -128,12 +129,12 @@ internal fun CompletionContent(
                 PrimaryButton(stringResource(R.string.share_result), { onShare(share) }, icon = R.drawable.ic_share,
                     modifier = Modifier.fillMaxWidth().height(56.dp).semantics { contentDescription = shareDescription })
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    SecondaryButton(newGame, onNewGame, Modifier.weight(1f).height(48.dp))
-                    SecondaryButton(stringResource(R.string.home), onClose, Modifier.weight(1f).height(48.dp))
+                    SecondaryButton(newGame, onNewGame, Modifier.weight(1f).heightIn(min = 48.dp))
+                    SecondaryButton(stringResource(R.string.home), onClose, Modifier.weight(1f).heightIn(min = 48.dp))
                 }
             } else {
-                PrimaryButton(newGame, onNewGame, icon = R.drawable.ic_add, modifier = Modifier.fillMaxWidth().height(56.dp))
-                SecondaryButton(stringResource(R.string.home), onClose, Modifier.fillMaxWidth().height(56.dp))
+                PrimaryButton(newGame, onNewGame, icon = R.drawable.ic_add, modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp))
+                SecondaryButton(stringResource(R.string.home), onClose, Modifier.fillMaxWidth().heightIn(min = 56.dp))
             }
         }
     }

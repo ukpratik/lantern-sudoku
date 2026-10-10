@@ -45,6 +45,8 @@ data class GameUiState(
     val completion: CompletionSummary? = null,
     /** "New <level> game" after a daily, with a saved game at that level: the Continue-or-new choice (US-002). */
     val continueOrNew: ContinueSummary? = null,
+    /** The last placement, note change or blocked tap, for TalkBack's polite live region (US-022). */
+    val change: BoardChange? = null,
 )
 
 sealed interface GameEvent {
@@ -83,6 +85,7 @@ class GameViewModel(
     private var resumed = false
     private var ticker: Job? = null
     private var saveFailedShownAt = Long.MIN_VALUE / 2
+    private var changeSeq = 0
 
     init {
         viewModelScope.launch { settings.collect { s -> _state.update { it.copy(settings = s) } } }
@@ -122,7 +125,8 @@ class GameViewModel(
             events.trySend(GameEvent.Leave)
             return
         }
-        if (t.state != game) _state.update { it.copy(game = t.state) }
+        val change = BoardChange.of(++changeSeq, game, t.state, action, t.effects)
+        if (t.state != game || change != null) _state.update { it.copy(game = t.state, change = change ?: it.change) }
         for (e in t.effects) {
             when (e) {
                 Effect.Persist -> if (t.state.status != Status.COMPLETED) persist(t.state)

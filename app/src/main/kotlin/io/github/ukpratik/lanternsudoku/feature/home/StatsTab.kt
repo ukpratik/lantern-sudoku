@@ -253,7 +253,7 @@ private fun EmptyStats(onPlayToday: () -> Unit, onPickLevel: () -> Unit) {
         Text(stringResource(R.string.stats_empty_body), style = MaterialTheme.typography.bodyLarge, textAlign = TextAlign.Center,
             color = MaterialTheme.colorScheme.onSurfaceVariant)
         Spacer(Modifier.height(24.dp))
-        PrimaryButton(stringResource(R.string.daily_play), onPlayToday, icon = R.drawable.ic_play, modifier = Modifier.fillMaxWidth().height(56.dp))
+        PrimaryButton(stringResource(R.string.daily_play), onPlayToday, icon = R.drawable.ic_play, modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp))
         Spacer(Modifier.height(8.dp))
         TextButton(onClick = onPickLevel, modifier = Modifier.heightIn(min = 48.dp)) {
             Text(stringResource(R.string.pick_a_level), style = MaterialTheme.typography.labelLarge)

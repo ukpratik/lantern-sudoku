@@ -7,6 +7,13 @@ import android.content.Intent
 import android.content.IntentFilter
 import androidx.core.content.ContextCompat
 import android.graphics.Color
+import androidx.core.graphics.drawable.toDrawable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.graphics.toArgb
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import io.github.ukpratik.lanternsudoku.ui.theme.LanternPalette
+import io.github.ukpratik.lanternsudoku.ui.theme.paletteFor
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.SystemBarStyle
@@ -33,19 +40,28 @@ class MainActivity : ComponentActivity() {
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        // M2 ships the light palette only (M5 adds dark and high contrast), so the system bars keep dark icons.
-        enableEdgeToEdge(
-            statusBarStyle = SystemBarStyle.light(Color.TRANSPARENT, Color.TRANSPARENT),
-            navigationBarStyle = SystemBarStyle.light(Color.TRANSPARENT, Color.TRANSPARENT),
-        )
+        enableEdgeToEdge()
         super.onCreate(savedInstanceState)
         val container = (application as LanternApp).container
         setContent {
-            LanternTheme {
+            // Prefetched in LanternApp, so the first frame normally has the saved theme; until then only the window
+            // background shows (a few ms), never a wrong-theme flash. Changes recompose instantly (US-020).
+            val settings by container.settingsState.collectAsStateWithLifecycle()
+            val s = settings ?: return@setContent
+            val palette = paletteFor(s.theme, s.highContrast)
+            LaunchedEffect(palette) { applySystemBars(palette) }
+            LanternTheme(palette, largeDigits = s.largeDigits) {
                 LanternNavHost(container, openGame.receiveAsFlow())
             }
         }
         if (savedInstanceState == null) handleDebug(intent)
+    }
+
+    /** Status and navigation bar icons follow the app's palette, not the system's, when the player picks a theme. */
+    private fun applySystemBars(palette: LanternPalette) {
+        val style = if (palette.dark) SystemBarStyle.dark(Color.TRANSPARENT) else SystemBarStyle.light(Color.TRANSPARENT, Color.TRANSPARENT)
+        enableEdgeToEdge(statusBarStyle = style, navigationBarStyle = style)
+        window.setBackgroundDrawable(palette.colorScheme.background.toArgb().toDrawable())
     }
 
     override fun onStart() {
@@ -64,6 +80,10 @@ class MainActivity : ComponentActivity() {
         super.onStop()
     }
 
+    /**
+     * A running app gets hook intents here only when they are sent with `am start --activity-single-top` (BL-016): a plain
+     * `am start -n` matching the task's root intent just brings the task to the front without delivering the extras.
+     */
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         handleDebug(intent)
