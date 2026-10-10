@@ -161,7 +161,7 @@ object HintCopy {
                 else -> emptyList()
             },
             meta = when (h.stage) {
-                3 -> res.getString(R.string.hint_meta_plain, hints)
+                3 -> res.getString(R.string.hint_meta_removed, hints)
                 else -> res.getString(R.string.hint_wrong_meta)
             },
             secondary = res.getString(if (h.stage == 3) R.string.hint_undo else if (h.stage == 2) R.string.hint_got_it else R.string.hint_close),

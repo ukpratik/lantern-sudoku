@@ -105,7 +105,8 @@
         <item quantity="other">Removed from %d notes</item>
     </plurals>
     <string name="hint_meta_placed" tools:ignore="PluralsCandidate">Hints this game: %1$d · this one placed a digit, so this game won\'t be a clean solve</string>
-    <string name="hint_meta_plain" tools:ignore="PluralsCandidate">Hints this game: %1$d</string>
+    <!-- Error first, stage 3: removing the wrong digit counts as a stage-3 hint (D-032), so say so, as for a placed digit. -->
+    <string name="hint_meta_removed" tools:ignore="PluralsCandidate">Hints this game: %1$d · this one changed the board, so this game won\'t be a clean solve</string>
     <string name="hint_undo">Undo</string>
     <string name="hint_done">Done</string>
 

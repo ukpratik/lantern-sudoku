@@ -156,6 +156,8 @@ class HintCopyTest {
         val t3 = HintCopy.of(res, s)!!
         assertClean(t3, "wrong 3")
         assertThat(t3.title).isEqualTo("Removed the $wrongDigit from ${HintCopy.cellName(res, cell)}")
+        // The removal counts as a stage-3 hint, so the meta line says the game won't be clean (M5 UX check).
+        assertThat(t3.meta).contains("won't be a clean solve")
 
         val hard = Grid.parse("8..........36......7..9.2...5...7.......457.....1...3...1....68..85...1..9....4..")
         val fb = GameState.new("X", hard).act(Action.OpenHint)
