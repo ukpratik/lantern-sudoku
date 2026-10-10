@@ -4,7 +4,7 @@
 
 Lantern Sudoku has no ads, no account, no tracking and **no network permission**: CI fails the build if any permission appears in a release APK. It is free software under GPL-3.0-or-later.
 
-> **Status:** in development (M0 foundation, M1 engine + puzzle bank, M2 playable board, M3 teaching hints and M4 daily, completion and stats are done). Product, design and architecture docs: [`product/README.md`](product/README.md). Build plan: [`product/06-build/build-plan.md`](product/06-build/build-plan.md).
+> **Status:** 1.0.0-rc1, the release candidate in QA (M0 to M5 done: engine and bank, playable board, teaching hints, daily and stats, themes, accessibility and hardening). Dev → QA handover: [`product/06-build/handover.md`](product/06-build/handover.md). Product, design and architecture docs: [`product/README.md`](product/README.md). Build plan: [`product/06-build/build-plan.md`](product/06-build/build-plan.md).
 
 ## Build, run, test
 
@@ -20,7 +20,9 @@ scripts/install-hooks.sh                                 # optional pre-push hoo
 scripts/ci.sh                        # every CI gate, exactly as GitHub Actions runs it
 ```
 
-Debug builds have QA hooks (never in release): `adb shell am start -n io.github.ukpratik.lanternsudoku.debug/io.github.ukpratik.lanternsudoku.MainActivity --es dbg_load N-H-0123` starts that puzzle, add `--es dbg_board <81 chars>` to fill in a position's entries (for hint QA), and `--ez dbg_near_solved true` opens the current game with one empty cell left (also in the game's ⋮ menu). `--es dbg_date 2026-10-15` sets "today" (`clear` resets it) and `--ez dbg_daily true` opens today's daily. Send hooks on a cold start (`am force-stop` first).
+Debug builds have QA hooks (never in release): `adb shell am start --activity-single-top -n io.github.ukpratik.lanternsudoku.debug/io.github.ukpratik.lanternsudoku.MainActivity --es dbg_load N-H-0123` starts that puzzle, add `--es dbg_board <81 chars>` to fill in a position's entries (for hint QA), and `--ez dbg_near_solved true` opens the current game with one empty cell left (also in the game's ⋮ menu). `--es dbg_date 2026-10-15` sets "today" (`clear` resets it) and `--ez dbg_daily true` opens today's daily. `--activity-single-top` lets the hooks reach a running app too; the full list is in the handover.
+
+Startup (needs a device or emulator, API 33+): `./gradlew :app:generateBaselineProfile` regenerates the shipped Baseline Profile, and `./gradlew :baselineprofile:connectedBenchmarkReleaseAndroidTest` measures cold start (add `-Pandroid.testInstrumentationRunnerArguments.androidx.benchmark.suppressErrors=EMULATOR` on an emulator).
 
 `scripts/ci.sh` runs: unit tests, the bank validator, Android Lint for both flavours (warnings are errors), R8 release builds of both flavours with the AboutLibraries licence gate, the permission gate (empty allowlist) and the size gate (Play download ≤ 10 MB).
 
@@ -33,8 +35,10 @@ engine/              pure Kotlin game engine (no Android): model, solver, techni
 app/                 Android app (Jetpack Compose, Material 3); flavours play and fdroid
 tools/generator/     JVM CLI that generates and validates the committed puzzle bank
 bank/v1/             the committed puzzle bank (11,640 puzzles) and its manifest; see bank/v1/README.md
+baselineprofile/     Baseline Profile generator and startup macrobenchmark (device only)
 build-logic/         Gradle convention plugins (lantern.android.application, .compose, lantern.jvm.library)
-scripts/             ci.sh and the permission and size gates
+scripts/             ci.sh, the permission and size gates, subset-fonts.sh
+site/                home page and privacy policy (GitHub Pages at release)
 product/             product docs: PRD, design, architecture (HLD, LLD, ADRs), build plan, QA
 ```
 
