@@ -77,11 +77,12 @@ fun Controls(
     height: Dp = if (compact) 168.dp else 256.dp,
     toolHeight: Dp = 48.dp,
     largeText: Boolean = false,
+    iconOnlyTools: Boolean = false,
 ) {
     Row(modifier.fillMaxWidth().height(height).padding(horizontal = 16.dp)) {
         NumberPad(game, compact, colors, onAction, Modifier.weight(1f).fillMaxHeight())
         Spacer(Modifier.width(12.dp))
-        if (compact) ToolGrid(game, onAction, toolHeight, largeText) else ToolColumn(game, onAction, toolHeight, largeText)
+        if (compact) ToolGrid(game, onAction, toolHeight, largeText, iconOnlyTools) else ToolColumn(game, onAction, toolHeight, largeText)
     }
 }
 
@@ -295,15 +296,19 @@ private fun ToolColumn(game: GameState, onAction: (Action) -> Unit, toolHeight: 
 }
 
 @Composable
-private fun ToolGrid(game: GameState, onAction: (Action) -> Unit, toolHeight: Dp, largeText: Boolean) {
+private fun ToolGrid(game: GameState, onAction: (Action) -> Unit, toolHeight: Dp, largeText: Boolean, iconOnly: Boolean) {
     val all = tools(game)
-    Column(Modifier.width(if (largeText) 160.dp else 116.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+    // D-037: on the smallest phones with large text the grid shows icons only (TalkBack keeps the full names and states),
+    // so the pad keeps its 168 dp and the board and pad fit without scrolling (ISS-004).
+    Column(Modifier.width(if (largeText && !iconOnly) 160.dp else 116.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
         for (pair in all.take(4).chunked(2)) {
             Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                for (t in pair) ToolButton(t, stacked = true, height = toolHeight, onAction = onAction, modifier = Modifier.weight(1f), small = !largeText)
+                for (t in pair) {
+                    ToolButton(t, stacked = true, height = toolHeight, onAction = onAction, modifier = Modifier.weight(1f), small = !largeText, iconOnly = iconOnly)
+                }
             }
         }
-        ToolButton(all[4], stacked = largeText, height = toolHeight, onAction = onAction, modifier = Modifier.fillMaxWidth())
+        ToolButton(all[4], stacked = largeText && !iconOnly, height = toolHeight, onAction = onAction, modifier = Modifier.fillMaxWidth(), iconOnly = iconOnly)
     }
 }
 
@@ -312,7 +317,15 @@ private fun ToolGrid(game: GameState, onAction: (Action) -> Unit, toolHeight: Dp
  * (+ filled icon for Notes). [stacked] puts the label under the icon (compact grid, and large text, design §3.1).
  */
 @Composable
-private fun ToolButton(t: Tool, stacked: Boolean, height: Dp, onAction: (Action) -> Unit, modifier: Modifier, small: Boolean = false) {
+private fun ToolButton(
+    t: Tool,
+    stacked: Boolean,
+    height: Dp,
+    onAction: (Action) -> Unit,
+    modifier: Modifier,
+    small: Boolean = false,
+    iconOnly: Boolean = false,
+) {
     val scheme = MaterialTheme.colorScheme
     val label = stringResource(t.label)
     val state = when {
@@ -336,7 +349,11 @@ private fun ToolButton(t: Tool, stacked: Boolean, height: Dp, onAction: (Action)
         }
         .alpha(if (t.enabled) 1f else 0.42f)
     val iconSize: Dp = if (small) 20.dp else 22.dp
-    if (stacked) {
+    if (iconOnly) {
+        Box(base, contentAlignment = Alignment.Center) {
+            Icon(painterResource(t.icon), contentDescription = null, tint = t.tint ?: scheme.onSurface, modifier = Modifier.size(24.dp))
+        }
+    } else if (stacked) {
         Column(base, horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
             Icon(painterResource(t.icon), contentDescription = null, tint = t.tint ?: scheme.onSurface, modifier = Modifier.size(iconSize))
             // Compact keeps "Notes Off" at 11 sp; large text shows the name only (On = pill + filled icon; TalkBack says it).

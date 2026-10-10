@@ -58,6 +58,12 @@
     <string name="status_locked_notes" tools:ignore="PluralsCandidate">%1$d locked · tap cells to add or remove the mark</string>
     <string name="status_erase" tools:ignore="PluralsCandidate">%1$d locked · erase on · tap entries to clear</string>
     <string name="status_notes">Notes on · digits add or remove marks</string>
+    <!-- Short forms for the compact bar subtitle, next to the mistake count (design game-compact-360x740, ISS-003) -->
+    <string name="status_locked_short" tools:ignore="PluralsCandidate">%1$d locked</string>
+    <string name="status_locked_notes_short" tools:ignore="PluralsCandidate">%1$d locked · notes</string>
+    <string name="status_erase_short" tools:ignore="PluralsCandidate">%1$d locked · erase on</string>
+    <string name="status_notes_short">Notes on</string>
+    <string name="status_selected_short" tools:ignore="PluralsCandidate">Row %1$d, column %2$d</string>
     <string name="status_limit">Mistake limit reached</string>
     <string name="status_almost">Board full</string>
     <string name="status_completed">Solved</string>

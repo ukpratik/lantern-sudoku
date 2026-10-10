@@ -15,6 +15,13 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.ui.layout.Layout
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.rememberTextMeasurer
+import androidx.compose.ui.unit.Constraints
+import androidx.compose.ui.unit.Dp
+import io.github.ukpratik.lanternsudoku.ui.components.DAY_MONTH
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -139,7 +146,23 @@ fun GameScreen(vm: GameViewModel, onLeave: () -> Unit, onOpenGame: (Long) -> Uni
             Box(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing))
         } else {
             BoxWithConstraints(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing), contentAlignment = Alignment.TopCenter) {
-                val chrome = GameChrome.of(LocalDensity.current, ui.settings.showTimer)
+                val density = LocalDensity.current
+                val column = minOf(maxWidth.value, BoardGeometry.MAX_COLUMN)
+                // D-037: with large text, compact uses a shorter daily title ("Daily · 15 Oct") so the bar keeps one title line.
+                val compactTitle = gameTitle(ui.level, ui.dailyDate, short = true)
+                val compactLargeBar = if (density.fontScale >= GameChrome.LARGE_TEXT) {
+                    compactLargeBarHeight(compactTitle, ui.settings.showTimer, column)
+                } else {
+                    0f
+                }
+                // Labelled tools while the board keeps its 30 dp cells; icon-only when they'd make the column scroll (D-037).
+                val labelled = GameChrome.of(density, ui.settings.showTimer, compactLargeBar)
+                val labelledGeo = BoardGeometry.compute(maxWidth.value, maxHeight.value, labelled.extraRegular, labelled.extraCompact)
+                val chrome = if (labelled.largeText && labelledGeo.compact && labelledGeo.scrolls) {
+                    GameChrome.of(density, ui.settings.showTimer, compactLargeBar, iconOnlyTools = true)
+                } else {
+                    labelled
+                }
                 val geo = BoardGeometry.compute(maxWidth.value, maxHeight.value, chrome.extraRegular, chrome.extraCompact)
                 val completion = ui.completion
                 if (game.status == Status.COMPLETED && completion != null) {
@@ -158,7 +181,7 @@ fun GameScreen(vm: GameViewModel, onLeave: () -> Unit, onOpenGame: (Long) -> Uni
                     vm = vm,
                     game = game,
                     level = ui.level,
-                    dailyDate = ui.dailyDate,
+                    title = if (geo.compact && chrome.largeText) compactTitle else gameTitle(ui.level, ui.dailyDate, short = false),
                     settings = ui.settings,
                     paused = ui.paused,
                     saveFailed = ui.saveFailed,
@@ -196,7 +219,7 @@ private fun GameContent(
     vm: GameViewModel,
     game: GameState,
     level: Level,
-    dailyDate: LocalDate?,
+    title: String,
     settings: Settings,
     paused: Boolean,
     saveFailed: Boolean,
@@ -210,10 +233,9 @@ private fun GameContent(
 ) {
     val k = LocalLanternColors.current
     val levelName = stringResource(level.label)
-    // A daily keeps its own date in the bar, even past midnight (design state-daily-date-changed).
-    val title = dailyDate?.let { stringResource(R.string.game_title_daily, it.format(SHORT_DATE)) } ?: levelName
     val resources = LocalResources.current
-    val status = statusText(game) ?: HintCopy.of(resources, game)?.status
+    // Compact folds the status into the bar subtitle with the short forms (design game-compact-360x740).
+    val status = statusText(game, short = geo.compact) ?: HintCopy.of(resources, game)?.status
     // The space under the board: whatever is left, but never less than the controls need (then the column scrolls).
     val above = chrome.bar(geo.compact) + chrome.statusLine(geo.compact) + geo.board
     val minBottom = geo.controls - (above - geo.board)
@@ -225,72 +247,90 @@ private fun GameContent(
             levelName = title,
             elapsedMs = vm.elapsed.collectAsStateWithLifecycle().value,
             showTimer = settings.showTimer,
-            subtitle = if (geo.compact && !chrome.largeText) status else null,
+            subtitle = if (geo.compact) {
+                { CompactSubtitle(status, mistakesText(game, settings)) }
+            } else {
+                null
+            },
             height = chrome.bar(geo.compact),
             largeText = chrome.largeText,
+            compactLarge = geo.compact && chrome.largeText,
             paused = paused,
             onBack = onLeave, // the bar arrow leaves; system Back follows the priority order (design §8.2)
             onPause = { if (paused) vm.resume() else vm.pause() },
             onRestart = onRestart,
             onDebugNearSolved = vm::debugNearSolved,
         )
-        if (geo.compact && !chrome.largeText) Spacer(Modifier.height(GameChrome.COMPACT_GAP.dp))
+        if (geo.compact) Spacer(Modifier.height(GameChrome.COMPACT_GAP.dp))
         else StatusLine(status, game, settings, chrome.status, chrome.largeText)
         if (paused) {
             PauseCover(levelName, vm.elapsed.collectAsStateWithLifecycle().value, game.filledCount, vm::resume, onRestart, onOpenSettings, onLeave,
-                Modifier.fillMaxWidth().height((geo.board + bottom).dp))
+                Modifier.fillMaxWidth().height((geo.board + bottom).dp), onDebugNearSolved = {
+                    vm.resume()
+                    vm.debugNearSolved()
+                })
             return@Column
         }
         val showMistakes = settings.showMistakes || game.overrides.showMistakes
         val highlights = Highlights.of(game, showMistakes = showMistakes, highlightSame = settings.highlightSameDigit)
         val hintView = HintView.of(game)
-        Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-            Board(
-                model = BoardModel(
-                    values = IntArray(81) { game.value(it) },
-                    givens = BooleanArray(81) { game.isGiven(it) },
-                    notes = IntArray(81) { game.notes(it) },
-                    highlights = highlights,
-                    hint = hintView,
-                ),
-                size = geo.board.dp,
-                colors = k,
-                labels = cellLabels(resources, game, highlights, hintView),
-                onTapCell = { vm.onAction(Action.TapCell(it)) },
-            )
-            // US-022: the last move, read politely by TalkBack ("Placed 4, row 2, column 8"). One stable live-region node
-            // whose text changes (instead of the deprecated View.announceForAccessibility); 1 dp, nothing drawn.
-            val said = change?.describe(resources).orEmpty()
-            Box(Modifier.align(Alignment.TopStart).size(1.dp).semantics {
-                liveRegion = LiveRegionMode.Polite
-                if (said.isNotEmpty()) contentDescription = said // no text, no stop for TalkBack's swipe order
-                testTag = "move-announcement"
-            })
+        val panel = when (game.status) {
+            Status.LIMIT -> PanelKind.LIMIT
+            Status.ALMOST -> PanelKind.ALMOST
+            Status.COMPLETED -> PanelKind.COMPLETED
+            Status.PLAYING -> if (game.input.hint != null) PanelKind.HINT else PanelKind.PAD
         }
-        Box(Modifier.fillMaxWidth().height(bottom.dp)) {
-            val panel = when (game.status) {
-                Status.LIMIT -> PanelKind.LIMIT
-                Status.ALMOST -> PanelKind.ALMOST
-                Status.COMPLETED -> PanelKind.COMPLETED
-                Status.PLAYING -> if (game.input.hint != null) PanelKind.HINT else PanelKind.PAD
-            }
+        // ISS-001/002: a panel takes the height it needs and the board gives way, down to the 30 dp cell floor (the
+        // board stays whole and visible). Only what still doesn't fit scrolls inside the panel; its buttons stay pinned.
+        BoardAndSlot(
+            board = geo.board,
+            slot = bottom,
+            floor = BoardGeometry.BOARD_FLOOR,
+            boardContent = { size ->
+                Box(contentAlignment = Alignment.Center) {
+                    Board(
+                        model = BoardModel(
+                            values = IntArray(81) { game.value(it) },
+                            givens = BooleanArray(81) { game.isGiven(it) },
+                            notes = IntArray(81) { game.notes(it) },
+                            highlights = highlights,
+                            hint = hintView,
+                        ),
+                        size = size,
+                        colors = k,
+                        labels = cellLabels(resources, game, highlights, hintView),
+                        onTapCell = { vm.onAction(Action.TapCell(it)) },
+                    )
+                    // US-022: the last move, read politely by TalkBack ("Placed 4, row 2, column 8"). One stable live-region
+                    // node whose text changes (instead of the deprecated View.announceForAccessibility); 1 dp, nothing drawn.
+                    val said = change?.describe(resources).orEmpty()
+                    Box(Modifier.align(Alignment.TopStart).size(1.dp).semantics {
+                        liveRegion = LiveRegionMode.Polite
+                        if (said.isNotEmpty()) contentDescription = said // no text, no stop for TalkBack's swipe order
+                        testTag = "move-announcement"
+                    })
+                }
+            },
+        ) {
             // Design §7: 220 ms fade + 16 dp rise in, 150 ms fade out. Compose scales these by the system animator duration
             // scale, so "Remove animations" makes the swap instant (reduced motion).
             val rise = with(LocalDensity.current) { 16.dp.roundToPx() }
+            val slotMin = Modifier.fillMaxWidth().heightIn(min = bottom.dp)
             AnimatedContent(
                 panel,
                 transitionSpec = { (fadeIn(tween(220)) + slideInVertically(tween(220)) { rise }) togetherWith fadeOut(tween(150)) },
                 label = "pad-slot",
             ) { kind ->
                 when (kind) {
-                    PanelKind.PAD -> Column(Modifier.fillMaxSize()) {
+                    PanelKind.PAD -> Column(Modifier.fillMaxWidth().height(bottom.dp)) {
                         Spacer(Modifier.weight(1f))
                         if (saveFailed) SaveFailedBar(vm::retrySave)
                         Controls(game, geo.compact, k, vm::onAction, height = chrome.pad(geo.compact).dp,
-                            toolHeight = chrome.toolHeight.dp, largeText = chrome.largeText)
+                            toolHeight = chrome.tool(geo.compact).dp, largeText = chrome.largeText,
+                            iconOnlyTools = geo.compact && chrome.iconOnlyTools)
                         Spacer(Modifier.height(if (geo.compact) 8.dp else 12.dp))
                     }
-                    PanelKind.HINT -> HintPanel(game, vm::onAction)
+                    PanelKind.HINT -> HintPanel(game, vm::onAction, slotMin)
                     PanelKind.LIMIT -> GamePanel(
                         icon = R.drawable.ic_flag,
                         title = stringResource(R.string.limit_title, game.counters.mistakes),
@@ -298,6 +338,7 @@ private fun GameContent(
                         finePrint = stringResource(R.string.limit_fine_print),
                         primary = stringResource(R.string.keep_playing) to { vm.onAction(Action.KeepPlaying) },
                         secondary = stringResource(R.string.restart_puzzle) to { vm.restart() },
+                        modifier = slotMin,
                     )
                     PanelKind.ALMOST -> GamePanel(
                         icon = R.drawable.ic_lightbulb,
@@ -306,11 +347,47 @@ private fun GameContent(
                         finePrint = null,
                         primary = stringResource(R.string.show_them) to { vm.onAction(Action.ShowThem) },
                         secondary = stringResource(R.string.keep_looking) to { vm.onAction(Action.KeepLooking) },
+                        modifier = slotMin,
                     )
                     // The summary replaces the whole screen once the completing write is read back (a few ms).
-                    PanelKind.COMPLETED -> Box(Modifier.fillMaxSize())
+                    PanelKind.COMPLETED -> Box(Modifier.fillMaxWidth().height(bottom.dp))
                 }
             }
+        }
+    }
+}
+
+/**
+ * The board above the pad slot (design §4.1). The slot's content is measured first, between the slot's own height and
+ * whatever leaves the board at [floor]; the board takes the rest, centred, never larger than [board]. With the pad in
+ * the slot nothing changes; a taller panel shrinks the board instead of squeezing its own text (ISS-001, ISS-002).
+ */
+@Composable
+private fun BoardAndSlot(
+    board: Float,
+    slot: Float,
+    floor: Float,
+    boardContent: @Composable (Dp) -> Unit,
+    slotContent: @Composable () -> Unit,
+) {
+    val density = LocalDensity.current
+    Layout(
+        contents = listOf(
+            // The board's size comes from the height it's given (a square, centred), so it follows the slot in the same pass.
+            { BoxWithConstraints(contentAlignment = Alignment.Center) { boardContent(minOf(maxWidth, maxHeight)) } },
+            slotContent,
+        ),
+        modifier = Modifier.fillMaxWidth(),
+    ) { (boardMeasurables, slotMeasurables), constraints ->
+        val total = with(density) { (board + slot).dp.roundToPx() }
+        val boardMax = with(density) { board.dp.roundToPx() }
+        val maxSlot = total - with(density) { minOf(board, floor).dp.roundToPx() }
+        val slotPlaceable = slotMeasurables.first().measure(constraints.copy(minHeight = 0, maxHeight = maxSlot))
+        val boardPx = (total - slotPlaceable.height).coerceAtMost(boardMax)
+        val boardPlaceable = boardMeasurables.first().measure(Constraints.fixed(constraints.maxWidth, boardPx))
+        layout(constraints.maxWidth, total) {
+            boardPlaceable.place(0, 0)
+            slotPlaceable.place(0, total - slotPlaceable.height)
         }
     }
 }
@@ -322,9 +399,10 @@ private fun GameBar(
     levelName: String,
     elapsedMs: Long,
     showTimer: Boolean,
-    subtitle: String?,
+    subtitle: (@Composable () -> Unit)?,
     height: Float,
     largeText: Boolean,
+    compactLarge: Boolean,
     paused: Boolean,
     onBack: () -> Unit,
     onPause: () -> Unit,
@@ -335,7 +413,14 @@ private fun GameBar(
     Row(Modifier.fillMaxWidth().height(height.dp).padding(horizontal = 4.dp), verticalAlignment = Alignment.CenterVertically) {
         IconButton(onClick = onBack) { Icon(painterResource(R.drawable.ic_arrow_back), contentDescription = stringResource(R.string.back)) }
         Column(Modifier.weight(1f).padding(start = 4.dp)) {
-            if (largeText) {
+            if (compactLarge) {
+                // D-037: compact + large text keeps one title row (the timer wraps under the title only when both don't
+                // fit) and one subtitle line, measured by compactLargeBarHeight, so the board and pad stay on screen.
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(GameChrome.TITLE_TIMER_GAP.dp), itemVerticalAlignment = Alignment.Bottom) {
+                    Text(levelName, style = GameTitleStyle, maxLines = 2)
+                    if (showTimer) Text(formatElapsed(elapsedMs), style = TimerStyle, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
+                }
+            } else if (largeText) {
                 // US-021: with large text the title may take two lines and the timer goes under it (GameChrome budget).
                 Text(levelName, style = GameTitleStyle, maxLines = 2)
                 if (showTimer) Text(formatElapsed(elapsedMs), style = TimerStyle, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
@@ -348,7 +433,7 @@ private fun GameBar(
                     }
                 }
             }
-            if (subtitle != null) Text(subtitle, style = MaterialTheme.typography.labelMedium.copy(fontSize = MaterialTheme.typography.labelSmall.fontSize), maxLines = 1)
+            subtitle?.invoke()
         }
         IconButton(onClick = onPause) {
             Icon(
@@ -356,7 +441,8 @@ private fun GameBar(
                 contentDescription = stringResource(if (paused) R.string.resume else R.string.pause),
             )
         }
-        Box {
+        // D-037: no ⋮ in compact + large text; its only entry, Restart puzzle, is also on the Pause screen.
+        if (!compactLarge) Box {
             IconButton(onClick = { menu = true }) { Icon(painterResource(R.drawable.ic_more_vert), contentDescription = stringResource(R.string.more)) }
             DropdownMenu(expanded = menu, onDismissRequest = { menu = false }, containerColor = MaterialTheme.colorScheme.surfaceContainer) {
                 DropdownMenuItem(
@@ -427,8 +513,9 @@ private fun StatusLine(status: String?, game: GameState, settings: Settings, hei
     }
 }
 
+/** The state in words; [short] is the compact bar's form ("5 locked", design game-compact-360x740). */
 @Composable
-private fun statusText(game: GameState): String? {
+private fun statusText(game: GameState, short: Boolean = false): String? {
     val input = game.input
     val lock = input.lock
     val sel = input.selection
@@ -436,12 +523,85 @@ private fun statusText(game: GameState): String? {
         game.status == Status.LIMIT -> stringResource(R.string.status_limit)
         game.status == Status.ALMOST -> stringResource(R.string.status_almost)
         game.status == Status.COMPLETED -> stringResource(R.string.status_completed)
-        lock != null && input.eraseMode -> stringResource(R.string.status_erase, lock)
-        lock != null && input.notesMode -> stringResource(R.string.status_locked_notes, lock)
-        lock != null -> stringResource(R.string.status_locked, lock)
-        input.notesMode -> stringResource(R.string.status_notes)
-        sel != null -> stringResource(R.string.status_selected, sel / 9 + 1, sel % 9 + 1)
+        lock != null && input.eraseMode -> stringResource(if (short) R.string.status_erase_short else R.string.status_erase, lock)
+        lock != null && input.notesMode -> stringResource(if (short) R.string.status_locked_notes_short else R.string.status_locked_notes, lock)
+        lock != null -> stringResource(if (short) R.string.status_locked_short else R.string.status_locked, lock)
+        input.notesMode -> stringResource(if (short) R.string.status_notes_short else R.string.status_notes)
+        sel != null -> stringResource(if (short) R.string.status_selected_short else R.string.status_selected, sel / 9 + 1, sel % 9 + 1)
         else -> null
+    }
+}
+
+/** "Mistakes 1", or "Mistakes 2 of 3" with a limit (design §9); null when mistakes aren't shown. */
+@Composable
+private fun mistakesText(game: GameState, settings: Settings): String? {
+    if (!(settings.showMistakes || game.overrides.showMistakes)) return null
+    val n = game.counters.mistakes
+    val limitOn = settings.showMistakes && settings.mistakeLimit > 0 && !game.overrides.limitOff
+    return if (limitOn) stringResource(R.string.mistakes_of_limit, n, settings.mistakeLimit) else stringResource(R.string.mistakes_count, n)
+}
+
+/** The bar title: the level, or "Daily · Thu 15 Oct" ([short]: "Daily · 15 Oct"); a daily keeps its own date (design state-daily-date-changed). */
+@Composable
+private fun gameTitle(level: Level, dailyDate: LocalDate?, short: Boolean): String =
+    dailyDate?.let { stringResource(R.string.game_title_daily, it.format(if (short) DAY_MONTH else SHORT_DATE)) } ?: stringResource(level.label)
+
+private val CompactSubtitleStyle: TextStyle
+    @Composable get() = MaterialTheme.typography.labelMedium.copy(fontSize = MaterialTheme.typography.labelSmall.fontSize)
+
+/**
+ * The compact bar's height with large text (D-037): the title row (title and timer side by side when both fit,
+ * otherwise the timer under the title) plus one subtitle line, from the real text at this font scale. Measured once per
+ * title and width, so the board never moves as the clock or the status changes.
+ */
+@Composable
+private fun compactLargeBarHeight(title: String, showTimer: Boolean, column: Float): Float {
+    val measurer = rememberTextMeasurer()
+    val density = LocalDensity.current
+    val subtitleStyle = CompactSubtitleStyle
+    return remember(title, showTimer, column, density, measurer, subtitleStyle) {
+        with(density) {
+            val width = GameChrome.titleWidth(column).dp.roundToPx()
+            val titleFull = measurer.measure(title, GameTitleStyle, constraints = Constraints(maxWidth = width), maxLines = 2).size.height
+            val titleOneLine = measurer.measure(title, GameTitleStyle, softWrap = false).size.width
+            val timer = measurer.measure("0:00:00", TimerStyle, softWrap = false).size // the widest time, so it never re-wraps
+            val subtitle = measurer.measure("Mistakes 0", subtitleStyle, softWrap = false).size.height
+            val row = when {
+                !showTimer -> titleFull
+                titleOneLine + GameChrome.TITLE_TIMER_GAP.dp.roundToPx() + timer.width <= width -> maxOf(titleFull, timer.height)
+                else -> titleFull + timer.height
+            }
+            GameChrome.compactLargeBar(row.toDp().value, subtitle.toDp().value)
+        }
+    }
+}
+
+/**
+ * The compact bar subtitle: "5 locked · Mistakes 1" (design game-compact-360x740, ISS-003). One line; the mistake count
+ * always shows, and the state goes first when there's room for both.
+ */
+@Composable
+private fun CompactSubtitle(status: String?, mistakes: String?) {
+    val style = CompactSubtitleStyle
+    Layout(
+        content = {
+            Text(status.orEmpty(), style = style, maxLines = 1, softWrap = false)
+            Text(" · ", style = style, maxLines = 1, softWrap = false)
+            Text(mistakes.orEmpty(), style = style, maxLines = 1, softWrap = false, modifier = Modifier.semantics { testTag = "bar-mistakes" })
+        },
+    ) { (statusM, sepM, mistakesM), constraints ->
+        val loose = constraints.copy(minWidth = 0, minHeight = 0)
+        val m = if (mistakes != null) mistakesM.measure(loose) else null
+        val sep = sepM.measure(loose)
+        val room = constraints.maxWidth - (m?.let { it.width + sep.width } ?: 0)
+        val s = if (status != null && statusM.maxIntrinsicWidth(Constraints.Infinity) <= room) statusM.measure(loose) else null
+        val h = maxOf(m?.height ?: 0, s?.height ?: 0, sep.height)
+        layout(constraints.maxWidth, h) {
+            var x = 0
+            s?.let { it.place(x, 0); x += it.width }
+            if (s != null && m != null) { sep.place(x, 0); x += sep.width }
+            m?.place(x, 0)
+        }
     }
 }
 
@@ -512,6 +672,7 @@ private fun PauseCover(
     onOpenSettings: () -> Unit,
     onLeave: () -> Unit,
     modifier: Modifier,
+    onDebugNearSolved: (() -> Unit)? = null,
 ) {
     val k = LocalLanternColors.current
     Column(modifier.padding(horizontal = 16.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -531,6 +692,8 @@ private fun PauseCover(
                 MenuRow(R.drawable.ic_restart, stringResource(R.string.restart_puzzle), stringResource(R.string.restart_hint), onRestart)
                 MenuRow(R.drawable.ic_settings, stringResource(R.string.settings), null, onOpenSettings)
                 MenuRow(R.drawable.ic_home, stringResource(R.string.back_to_play), null, onLeave)
+                // Debug builds: the ⋮ menu's QA entry, for layouts without ⋮ (compact + large text, D-037).
+                if (DebugHooks.ENABLED && onDebugNearSolved != null) MenuRow(R.drawable.ic_notes, "Debug: fill all but one cell", null, onDebugNearSolved)
             }
         }
         Text(stringResource(R.string.game_saved), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant,

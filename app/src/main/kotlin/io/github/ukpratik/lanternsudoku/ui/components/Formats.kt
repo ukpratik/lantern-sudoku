@@ -14,6 +14,9 @@ val LONG_DATE: DateTimeFormatter = DateTimeFormatter.ofPattern("EEEE d MMMM", Lo
 /** "Thu 15 Oct" (Today row, Continue card, completion eyebrow). */
 val SHORT_DATE: DateTimeFormatter = DateTimeFormatter.ofPattern("EEE d MMM", Locale.ENGLISH)
 
+/** "15 Oct" (the compact game bar's daily title at large text, D-037). */
+val DAY_MONTH: DateTimeFormatter = DateTimeFormatter.ofPattern("d MMM", Locale.ENGLISH)
+
 /** "Thursday" (Daily card title). */
 val WEEKDAY: DateTimeFormatter = DateTimeFormatter.ofPattern("EEEE", Locale.ENGLISH)
 

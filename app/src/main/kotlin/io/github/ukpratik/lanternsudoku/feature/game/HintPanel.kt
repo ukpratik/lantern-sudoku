@@ -16,7 +16,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
@@ -37,6 +36,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.layout.Layout
+import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.PathEffect
@@ -73,6 +74,8 @@ import io.github.ukpratik.lanternsudoku.ui.theme.LocalLanternColors
  * The hint panel (US-012; design hint-stage-1/2/3, hint-error-first, hint-fallback): an in-place swap in the pad slot,
  * no drag handle and no swipe; the board stays where it is. Stepper · title (+ chip) · explanation · role legend ·
  * meta line · two buttons (secondary left, primary right). The text cross-fades on stage changes (150 ms).
+ * The panel takes the height its text needs and the board gives way, down to its 30 dp cell floor (ISS-001); only what
+ * still doesn't fit scrolls, with a visible cue, and the buttons stay pinned below it.
  */
 @Composable
 fun HintPanel(game: GameState, onAction: (Action) -> Unit, modifier: Modifier = Modifier) {
@@ -80,78 +83,110 @@ fun HintPanel(game: GameState, onAction: (Action) -> Unit, modifier: Modifier = 
     val text = HintCopy.of(LocalResources.current, game) ?: return
     val scheme = MaterialTheme.colorScheme
     Surface(
-        modifier.fillMaxSize().semantics {
+        modifier.semantics {
             paneTitle = text.status
             testTag = "hint-panel"
         },
         color = scheme.surfaceContainer, contentColor = scheme.onSurface,
         shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
     ) {
-        Column(Modifier.fillMaxSize().padding(start = 20.dp, end = 20.dp, top = 6.dp)) {
-            if (h.plan is HintPlan.Fallback) {
-                Row(Modifier.heightIn(min = 44.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Icon(painterResource(R.drawable.ic_lightbulb), contentDescription = null, tint = LocalLanternColors.current.hintIcon,
-                        modifier = Modifier.size(18.dp))
-                    Spacer(Modifier.width(6.dp))
-                    Text(text.eyebrow.orEmpty(), style = MaterialTheme.typography.labelMedium, color = scheme.onSurfaceVariant)
-                }
-            } else {
-                Stepper(stage = h.stage, onStage = { onAction(Action.HintStage(it)) })
-            }
-            AnimatedContent(
-                targetState = Triple(h.stage, h.step, text),
-                transitionSpec = { fadeIn(tween(150)) togetherWith fadeOut(tween(150)) },
-                modifier = Modifier.weight(1f),
-                label = "hint-stage",
-            ) { (_, step, t) ->
-                Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
-                    Spacer(Modifier.height(4.dp))
-                    FlowRow(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalArrangement = Arrangement.Center) {
-                        Text(
-                            t.title,
-                            style = MaterialTheme.typography.headlineSmall.copy(fontSize = 22.sp),
-                            modifier = Modifier.align(Alignment.CenterVertically).focusOnAppear().semantics {
-                                heading()
-                                liveRegion = LiveRegionMode.Polite
-                                contentDescription = t.announcement
-                            },
-                        )
-                        if (t.chip != null) {
-                            Text(
-                                t.chip,
-                                style = MaterialTheme.typography.labelSmall,
-                                color = scheme.onSecondaryContainer,
-                                modifier = Modifier.align(Alignment.CenterVertically).clip(RoundedCornerShape(8.dp))
-                                    .background(scheme.secondaryContainer).padding(horizontal = 8.dp, vertical = 4.dp),
-                            )
-                        }
+        Column(Modifier.fillMaxWidth().padding(start = 20.dp, end = 20.dp, top = 6.dp), verticalArrangement = Arrangement.SpaceBetween) {
+            Column(Modifier.weight(1f, fill = false)) {
+                if (h.plan is HintPlan.Fallback) {
+                    Row(Modifier.heightIn(min = 44.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Icon(painterResource(R.drawable.ic_lightbulb), contentDescription = null, tint = LocalLanternColors.current.hintIcon,
+                            modifier = Modifier.size(18.dp))
+                        Spacer(Modifier.width(6.dp))
+                        Text(text.eyebrow.orEmpty(), style = MaterialTheme.typography.labelMedium, color = scheme.onSurfaceVariant)
                     }
-                    if (t.stepLabel != null) ChainBar(t.stepLabel, step, h.stepCount, onAction)
-                    Text(
-                        t.body,
-                        style = MaterialTheme.typography.bodyLarge.copy(fontSize = 15.5.sp),
-                        modifier = Modifier.padding(top = 6.dp).clearAndSetSemantics { }, // read as part of the announcement
-                    )
-                    if (t.legend.isNotEmpty()) Legend(t.legend)
-                    Text(t.meta, style = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp), color = scheme.onSurfaceVariant,
-                        modifier = Modifier.padding(top = 8.dp))
+                } else {
+                    Stepper(stage = h.stage, onStage = { onAction(Action.HintStage(it)) })
+                }
+                AnimatedContent(
+                    targetState = Triple(h.stage, h.step, text),
+                    transitionSpec = { fadeIn(tween(150)) togetherWith fadeOut(tween(150)) },
+                    modifier = Modifier.weight(1f, fill = false),
+                    label = "hint-stage",
+                ) { (_, step, t) ->
+                    val scroll = rememberScrollState()
+                    Column(Modifier.fillMaxWidth().scrollCue(scroll).verticalScroll(scroll).semantics { testTag = "hint-text" }) {
+                        Spacer(Modifier.height(4.dp))
+                        FlowRow(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalArrangement = Arrangement.Center) {
+                            Text(
+                                t.title,
+                                style = MaterialTheme.typography.headlineSmall.copy(fontSize = 22.sp),
+                                modifier = Modifier.align(Alignment.CenterVertically).focusOnAppear().semantics {
+                                    heading()
+                                    liveRegion = LiveRegionMode.Polite
+                                    contentDescription = t.announcement
+                                },
+                            )
+                            if (t.chip != null) {
+                                Text(
+                                    t.chip,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = scheme.onSecondaryContainer,
+                                    modifier = Modifier.align(Alignment.CenterVertically).clip(RoundedCornerShape(8.dp))
+                                        .background(scheme.secondaryContainer).padding(horizontal = 8.dp, vertical = 4.dp),
+                                )
+                            }
+                        }
+                        if (t.stepLabel != null) ChainBar(t.stepLabel, step, h.stepCount, onAction)
+                        Text(
+                            t.body,
+                            style = MaterialTheme.typography.bodyLarge.copy(fontSize = 15.5.sp),
+                            modifier = Modifier.padding(top = 6.dp).clearAndSetSemantics { testTag = "hint-body" }, // read as part of the announcement
+                        )
+                        if (t.legend.isNotEmpty()) Legend(t.legend)
+                        Text(t.meta, style = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp), color = scheme.onSurfaceVariant,
+                            modifier = Modifier.padding(top = 8.dp))
+                    }
                 }
             }
             val secondaryAction = if (h.stage == 3) Action.Undo else Action.CloseHint
             val icon = if (h.stage == 2 && h.plan is HintPlan.Logical) R.drawable.ic_lightbulb else null
-            if (LocalDensity.current.fontScale >= LARGE_TEXT) {
-                // US-021: with large text the buttons stack full width (primary first) and grow with their labels.
-                Column(Modifier.fillMaxWidth().padding(top = 10.dp, bottom = 8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    PrimaryButton(text.primary, { onAction(Action.HintNext) },
-                        Modifier.fillMaxWidth().heightIn(min = 52.dp).semantics { testTag = "hint-primary" }, icon = icon)
-                    SecondaryButton(text.secondary, { onAction(secondaryAction) },
-                        Modifier.fillMaxWidth().heightIn(min = 52.dp).semantics { testTag = "hint-secondary" })
-                }
-            } else {
-                Row(Modifier.fillMaxWidth().padding(top = 10.dp, bottom = 8.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    SecondaryButton(text.secondary, { onAction(secondaryAction) }, Modifier.weight(1f).height(52.dp).semantics { testTag = "hint-secondary" })
-                    PrimaryButton(text.primary, { onAction(Action.HintNext) }, Modifier.weight(1f).height(52.dp).semantics { testTag = "hint-primary" }, icon = icon)
-                }
+            HintButtons(
+                large = LocalDensity.current.fontScale >= LARGE_TEXT,
+                secondary = { m -> SecondaryButton(text.secondary, { onAction(secondaryAction) }, m.semantics { testTag = "hint-secondary" }) },
+                primary = { m -> PrimaryButton(text.primary, { onAction(Action.HintNext) }, m.semantics { testTag = "hint-primary" }, icon = icon) },
+            )
+        }
+    }
+}
+
+/**
+ * Secondary left, primary right, 52 dp (design §5). With large text (US-021) they stay side by side while both labels
+ * fit half the width, and otherwise stack full width, primary first, growing with their labels: the side-by-side row
+ * leaves more of a short panel for the explanation (ISS-001).
+ */
+@Composable
+private fun HintButtons(large: Boolean, secondary: @Composable (Modifier) -> Unit, primary: @Composable (Modifier) -> Unit) {
+    Layout(
+        content = {
+            secondary(Modifier)
+            primary(Modifier)
+        },
+        modifier = Modifier.fillMaxWidth().padding(top = 10.dp, bottom = 8.dp),
+    ) { (sec, pri), constraints ->
+        val width = constraints.maxWidth
+        val gap = (if (large) 8.dp else 10.dp).roundToPx()
+        val minH = 52.dp.roundToPx()
+        val half = (width - gap) / 2
+        val sideBySide = !large || (sec.maxIntrinsicWidth(minH) <= half && pri.maxIntrinsicWidth(minH) <= half)
+        if (sideBySide) {
+            val h = if (large) maxOf(minH, sec.minIntrinsicHeight(half), pri.minIntrinsicHeight(half)) else minH
+            val s = sec.measure(Constraints.fixed(half, h))
+            val p = pri.measure(Constraints.fixed(width - gap - half, h))
+            layout(width, h) {
+                s.place(0, 0)
+                p.place(half + gap, 0)
+            }
+        } else {
+            val p = pri.measure(Constraints(minWidth = width, maxWidth = width, minHeight = minH))
+            val s = sec.measure(Constraints(minWidth = width, maxWidth = width, minHeight = minH))
+            layout(width, p.height + gap + s.height) {
+                p.place(0, 0)
+                s.place(0, p.height + gap)
             }
         }
     }
@@ -259,7 +294,10 @@ private fun Legend(items: List<LegendItem>) {
                         textDecoration = TextDecoration.LineThrough, style = MaterialTheme.typography.bodyMedium)
                     LegendKind.PLACED -> Box(Modifier.size(18.dp).border(k.ringStroke, k.hintTargetRing, RoundedCornerShape(5.dp)),
                         contentAlignment = Alignment.Center) {
-                        Text("${item.digit}", style = MaterialTheme.typography.labelSmall, color = k.entry)
+                        // A board digit in an 18 dp swatch: sized in dp like the board's, never the font scale (US-021).
+                        val size = with(LocalDensity.current) { 11.dp.toSp() }
+                        Text("${item.digit}", style = MaterialTheme.typography.labelSmall.copy(fontSize = size, lineHeight = size, letterSpacing = 0.sp),
+                            color = k.entry)
                     }
                 }
                 Spacer(Modifier.width(6.dp))
