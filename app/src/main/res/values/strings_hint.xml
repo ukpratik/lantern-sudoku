@@ -60,7 +60,7 @@
 
     <!-- Stage 2 · Why: one explanation per technique. Dashed cells = the reason, the ringed cell = the answer. -->
     <string name="tech_expl_full_house" tools:ignore="PluralsCandidate">Only one cell is still empty in %1$s, and the one digit %1$s is missing is %2$d. So the ringed cell must be %2$d.</string>
-    <string name="tech_expl_hidden_single" tools:ignore="PluralsCandidate">In %1$s, every other empty cell already sees a %2$d in its row, column or box (the dashed cells). So the %2$d can only go in the ringed cell.</string>
+    <string name="tech_expl_hidden_single" tools:ignore="PluralsCandidate">In %1$s, every other empty cell already sees the digit %2$d in its row, column or box (the dashed cells). So the %2$d can only go in the ringed cell.</string>
     <string name="tech_expl_naked_single" tools:ignore="PluralsCandidate">The ringed cell already sees every digit except %1$d in its row, column and box (the dashed cells hold them). So it can only be %1$d.</string>
     <string name="tech_expl_pointing" tools:ignore="PluralsCandidate">In %1$s, the %2$d can only go in the dashed cells, and they all lie in %3$s. So no other cell in %3$s can be %2$d.</string>
     <string name="tech_expl_box_line" tools:ignore="PluralsCandidate">In %1$s, the %2$d can only go in the dashed cells, and they all lie in %3$s. So the %2$d for %1$s is one of them, and no other cell in %3$s can be %2$d.</string>

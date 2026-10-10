@@ -95,6 +95,7 @@ import io.github.ukpratik.lanternsudoku.ui.components.PrimaryButton
 import io.github.ukpratik.lanternsudoku.ui.components.SecondaryButton
 import io.github.ukpratik.lanternsudoku.ui.components.formatElapsed
 import io.github.ukpratik.lanternsudoku.ui.components.label
+import io.github.ukpratik.lanternsudoku.ui.components.sheetTitle
 import io.github.ukpratik.lanternsudoku.ui.components.summary
 import io.github.ukpratik.lanternsudoku.ui.theme.DisplayFamily
 import io.github.ukpratik.lanternsudoku.ui.theme.LanternColors
@@ -436,7 +437,7 @@ internal fun ContinueOrNewSheet(saved: ContinueSummary, onContinue: () -> Unit, 
                 MiniBoard(saved.gridSummary, 64.dp, k)
                 Spacer(Modifier.width(16.dp))
                 Column {
-                    Text(stringResource(R.string.sheet_title, level), style = MaterialTheme.typography.titleLarge,
+                    Text(stringResource(saved.level.sheetTitle), style = MaterialTheme.typography.titleLarge,
                         modifier = Modifier.semantics { heading() })
                     Text(stringResource(R.string.sheet_meta, formatElapsed(saved.elapsedMs), saved.filled),
                         style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)

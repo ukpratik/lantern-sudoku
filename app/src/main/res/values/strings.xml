@@ -36,7 +36,11 @@
     <string name="tab_daily_not_played">Daily, today\'s puzzle not played yet</string>
 
     <!-- Continue-or-new sheet (US-002, design level-picker-continue-or-new) -->
-    <string name="sheet_title">You have a %1$s game going</string>
+    <!-- One title per level so the article fits the level's name (ISS-005: "an Easy", "a Medium"). -->
+    <string name="sheet_title_easy">You have an Easy game going</string>
+    <string name="sheet_title_medium">You have a Medium game going</string>
+    <string name="sheet_title_hard">You have a Hard game going</string>
+    <string name="sheet_title_expert">You have an Expert game going</string>
     <string name="sheet_meta">%1$s played · %2$d of 81 cells</string>
     <string name="sheet_continue">Continue this game</string>
     <string name="sheet_start_new">Start a new %1$s puzzle</string>

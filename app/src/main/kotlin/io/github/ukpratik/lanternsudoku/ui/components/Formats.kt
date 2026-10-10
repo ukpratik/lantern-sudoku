@@ -51,6 +51,16 @@ val Level.label: Int
         Level.EXPERT -> R.string.level_expert
     }
 
+/** "You have an Easy game going" (Continue-or-new sheet): one string per level, so the article always fits (ISS-005). */
+@get:StringRes
+val Level.sheetTitle: Int
+    get() = when (this) {
+        Level.EASY -> R.string.sheet_title_easy
+        Level.MEDIUM -> R.string.sheet_title_medium
+        Level.HARD -> R.string.sheet_title_hard
+        Level.EXPERT -> R.string.sheet_title_expert
+    }
+
 @get:StringRes
 val Level.summary: Int
     get() = when (this) {
