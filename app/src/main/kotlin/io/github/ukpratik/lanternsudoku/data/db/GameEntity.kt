@@ -59,6 +59,7 @@ data class ContinueRow(
     val id: Long,
     val kind: Int,
     val level: Int,
+    @ColumnInfo(name = "daily_epoch_day") val dailyEpochDay: Long?,
     @ColumnInfo(name = "elapsed_ms") val elapsedMs: Long,
     @ColumnInfo(name = "filled_count") val filledCount: Int,
     @ColumnInfo(name = "grid_summary") val gridSummary: String,
@@ -68,3 +69,28 @@ data class ContinueRow(
 data class PlayedRow(@ColumnInfo(name = "puzzle_id") val puzzleId: String, @ColumnInfo(name = "last_started") val lastStarted: Long)
 
 data class BlobRow(val id: Long, @ColumnInfo(name = "state_blob") val stateBlob: String?)
+
+/** A daily's row for the strip, today's card and the share text (US-014, US-016, US-017). */
+data class DailyRow(
+    val id: Long,
+    val level: Int,
+    @ColumnInfo(name = "daily_epoch_day") val dailyEpochDay: Long,
+    val status: Int,
+    @ColumnInfo(name = "elapsed_ms") val elapsedMs: Long,
+    val hints1: Int,
+    val hints2: Int,
+    val hints3: Int,
+    val mistakes: Int,
+    @ColumnInfo(name = "box_flags") val boxFlags: Int,
+)
+
+/** One level's stats (US-019); see [GameDao.levelStats]. */
+data class LevelStatsRow(
+    val level: Int,
+    val started: Int,
+    val completed: Int,
+    val abandoned: Int,
+    val clean: Int,
+    @ColumnInfo(name = "best_ms") val bestMs: Long?,
+    @ColumnInfo(name = "total_ms") val totalMs: Long,
+)

@@ -4,6 +4,15 @@ package io.github.ukpratik.lanternsudoku.data
 import android.database.sqlite.SQLiteException
 import androidx.room.withTransaction
 import io.github.ukpratik.lanternsudoku.data.db.ContinueRow
+import io.github.ukpratik.lanternsudoku.data.db.DailyRow
+import io.github.ukpratik.lanternsudoku.data.db.LevelStatsRow
+import io.github.ukpratik.lanternsudoku.engine.daily.DailyMapper
+import io.github.ukpratik.lanternsudoku.engine.daily.Streaks
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flatMapLatest
 import io.github.ukpratik.lanternsudoku.data.db.GameDao
 import io.github.ukpratik.lanternsudoku.data.db.GameEntity
 import io.github.ukpratik.lanternsudoku.data.db.LanternDatabase
@@ -24,11 +33,23 @@ import java.time.Clock
 import java.time.LocalDate
 import java.time.ZoneId
 
-/** Home's view of a saved game (US-001): level, time, progress and the mini-board summary. */
-data class ContinueSummary(val gameId: Long, val level: Level, val daily: Boolean, val elapsedMs: Long, val filled: Int, val gridSummary: String)
+/**
+ * Home's view of a saved game (US-001): level, time, progress and the mini-board summary. [dailyDate] is the daily's
+ * own date (it never changes, design `state-daily-date-changed`); null for New games.
+ */
+data class ContinueSummary(
+    val gameId: Long,
+    val level: Level,
+    val daily: Boolean,
+    val elapsedMs: Long,
+    val filled: Int,
+    val gridSummary: String,
+    val dailyDate: LocalDate? = null,
+)
 
 sealed interface LoadResult {
-    data class Ok(val state: GameState, val elapsedMs: Long, val level: Level) : LoadResult
+    /** [dailyDate] is the daily's own date (null for New games); it never changes once started. */
+    data class Ok(val state: GameState, val elapsedMs: Long, val level: Level, val dailyDate: LocalDate? = null) : LoadResult
 
     /** The save couldn't be read or migrated; the row is now DISCARDED (design `state-save-corrupt`). */
     data class Discarded(val reason: String) : LoadResult
@@ -36,9 +57,6 @@ sealed interface LoadResult {
     /** No such in-progress game (already completed or abandoned elsewhere). */
     data object Missing : LoadResult
 }
-
-/** The completion facts the summary shows (US-018 details arrive in M4). */
-data class CompletionSummary(val level: Level, val elapsedMs: Long, val mistakes: Int)
 
 /**
  * Games: start, load, save, complete, abandon (LLD §3.2). Invariants enforced here:
@@ -50,6 +68,8 @@ class GameRepository(
     private val io: CoroutineDispatcher,
     private val clock: Clock = Clock.systemUTC(),
     private val zone: () -> ZoneId = { ZoneId.systemDefault() },
+    /** The local date for started/completed days and dailies; shared with the screens (and the `dbg_date` hook). */
+    val today: Today = Today(clock, zone),
 ) : SaveWriter {
     private val dao: GameDao = db.gameDao()
     private val _discardNotice = MutableStateFlow(false)
@@ -81,7 +101,7 @@ class GameRepository(
 
     /** Starts a specific puzzle (debug hook `dbg:load`, and tests). Same invariants as [startNew]. */
     suspend fun startWith(id: PuzzleId, abandonExisting: Boolean = true): Long = withContext(io) {
-        require(id.pool == Pool.NEWGAME) { "Dailies are opened by date (M4)" }
+        require(id.pool == Pool.NEWGAME) { "Dailies are opened by date: openOrCreateDaily" }
         val record = source.read(id)
         val state = GameState.new(id.toString(), record.givens)
         val now = clock.millis()
@@ -110,6 +130,92 @@ class GameRepository(
         }
     }
 
+    /**
+     * Opens the daily for [date] (US-014): the existing row if it was started before (in progress), otherwise a new
+     * row whose `daily_epoch_day` is [date] for good and whose `started_epoch_day` is the real local date now, so a
+     * past daily started later never counts toward the streak (PRD v1.3 §5). Returns null when that daily is already
+     * completed (there's nothing to resume). A set-aside (DISCARDED) daily can be started again. One row per date
+     * (unique index, TC-135).
+     */
+    suspend fun openOrCreateDaily(date: LocalDate): Long? = withContext(io) {
+        val ref = DailyMapper.forDate(date)
+        val record = source.read(ref.id)
+        db.withTransaction {
+            val existing = dao.daily(date.toEpochDay())
+            when (existing?.status) {
+                GameEntity.IN_PROGRESS -> return@withTransaction existing.id
+                GameEntity.COMPLETED -> return@withTransaction null
+                null -> Unit
+                else -> dao.deleteDiscarded(existing.id)
+            }
+            val state = GameState.new(ref.id.toString(), record.givens)
+            val now = clock.millis()
+            _discardNotice.value = false
+            dao.insert(
+                GameEntity(
+                    puzzleId = ref.id.toString(),
+                    kind = GameEntity.KIND_DAILY,
+                    level = ref.level.ordinal,
+                    dailyEpochDay = date.toEpochDay(),
+                    status = GameEntity.IN_PROGRESS,
+                    startedAt = now,
+                    startedEpochDay = today(),
+                    updatedAt = now,
+                    filledCount = state.filledCount,
+                    gridSummary = GameState.gridSummary(state),
+                    stateVersion = StateCodec.VERSION,
+                    stateBlob = StateCodec.encode(state),
+                ),
+            )
+        }
+    }
+
+    /**
+     * Today and the 6 previous dates, oldest first (the Daily tab strip, D-028), each with its state by row:
+     * done, started (in progress) or not played. Recomputed when [dates] (today) changes or a daily row changes.
+     */
+    @OptIn(ExperimentalCoroutinesApi::class)
+    fun dailyWeek(dates: Flow<LocalDate>): Flow<List<DailyDay>> = dates.distinctUntilChanged().flatMapLatest { t ->
+        val from = t.minusDays(6)
+        dao.dailies(from.toEpochDay(), t.toEpochDay()).map { rows -> week(from, rows) }
+    }
+
+    /** Streak, best and days played as of [dates] (US-015). */
+    fun dailyStats(dates: Flow<LocalDate>): Flow<DailyStats> =
+        combine(dao.streakDays(), dao.daysPlayed(), dates.distinctUntilChanged()) { days, played, t -> dailyStats(days, played, t) }
+
+    /** The Stats tab (US-019): per level (dailies in their level, D-019) and the daily block. */
+    fun stats(dates: Flow<LocalDate>): Flow<StatsView> = combine(dao.levelStats(), dailyStats(dates)) { rows, daily ->
+        StatsView(rows.associate { Level.entries[it.level] to it.toStats() }, daily)
+    }
+
+    /**
+     * The completion summary (US-018) of a completed game, read back after its completing write: time, hints by
+     * stage, mistakes, clean, the best-time comparison (clean solves at this level, excluding this game), and for a
+     * daily its date, the updated streak line and the share facts. Null if the row isn't completed.
+     */
+    suspend fun completion(gameId: Long): CompletionSummary? = withContext(io) {
+        val row = dao.get(gameId)?.takeIf { it.status == GameEntity.COMPLETED } ?: return@withContext null
+        val previous = dao.bestCleanExcluding(row.level, row.id)
+        val level = Level.entries[row.level]
+        val date = row.dailyEpochDay?.let(LocalDate::ofEpochDay)
+        CompletionSummary(
+            gameId = row.id,
+            level = level,
+            elapsedMs = row.elapsedMs,
+            hints1 = row.hints1,
+            hints2 = row.hints2,
+            hints3 = row.hints3,
+            mistakes = row.mistakes,
+            clean = row.clean,
+            previousBestMs = previous,
+            newBest = row.clean && (previous == null || row.elapsedMs < previous),
+            dailyDate = date,
+            daily = date?.let { dailyStats(dao.streakDays().first(), dao.daysPlayed().first(), today.refresh()) },
+            share = date?.let { ShareFacts(it, level, row.elapsedMs, row.hints1 + row.hints2 + row.hints3, row.mistakes, row.boxFlags) },
+        )
+    }
+
     suspend fun abandon(gameId: Long) {
         withContext(io) { dao.abandon(gameId, clock.millis()) }
     }
@@ -119,7 +225,7 @@ class GameRepository(
         if (row.status != GameEntity.IN_PROGRESS) return@withContext LoadResult.Missing
         val blob = row.stateBlob ?: return@withContext discard(gameId, "no blob")
         when (val r = StateCodec.decode(blob)) {
-            is DecodeResult.Ok -> LoadResult.Ok(r.state, row.elapsedMs, Level.entries[row.level])
+            is DecodeResult.Ok -> LoadResult.Ok(r.state, row.elapsedMs, Level.entries[row.level], row.dailyEpochDay?.let(LocalDate::ofEpochDay))
             is DecodeResult.Discarded -> discard(gameId, r.reason)
         }
     }
@@ -200,12 +306,45 @@ class GameRepository(
         return played.entries.filter { it.key < count }.minWith(compareBy({ it.value }, { it.key })).key
     }
 
-    private fun today(): Long = LocalDate.now(clock.withZone(zone())).toEpochDay()
+    private fun today(): Long = today.refresh().toEpochDay()
 
-    private fun ContinueRow.toSummary() =
-        ContinueSummary(id, Level.entries[level], kind == GameEntity.KIND_DAILY, elapsedMs, filledCount, gridSummary)
+    private fun ContinueRow.toSummary() = ContinueSummary(
+        id, Level.entries[level], kind == GameEntity.KIND_DAILY, elapsedMs, filledCount, gridSummary, dailyEpochDay?.let(LocalDate::ofEpochDay),
+    )
 
     companion object {
         private const val TAG = "GameRepository"
+
+        /** The 7 dates from [from] (oldest first) with their rows' states (D-028: today + 6 previous). */
+        internal fun week(from: LocalDate, rows: List<DailyRow>): List<DailyDay> {
+            val byDay = rows.associateBy { it.dailyEpochDay }
+            return (0L until 7L).map { n ->
+                val date = from.plusDays(n)
+                val level = DailyMapper.forDate(date).level
+                val row = byDay[date.toEpochDay()]
+                val state = when (row?.status) {
+                    GameEntity.COMPLETED -> DayState.DONE
+                    GameEntity.IN_PROGRESS -> DayState.STARTED
+                    else -> DayState.NOT_PLAYED // no row, or a set-aside save
+                }
+                DailyDay(
+                    date = date,
+                    level = level,
+                    state = state,
+                    elapsedMs = row?.elapsedMs ?: 0,
+                    gameId = row?.id?.takeIf { state != DayState.NOT_PLAYED },
+                    share = row?.takeIf { state == DayState.DONE }?.let {
+                        ShareFacts(date, level, it.elapsedMs, it.hints1 + it.hints2 + it.hints3, it.mistakes, it.boxFlags)
+                    },
+                )
+            }
+        }
+
+        internal fun dailyStats(streakDays: List<Long>, daysPlayed: Int, today: LocalDate): DailyStats {
+            val days = streakDays.toSet()
+            return DailyStats(Streaks.current(days, today.toEpochDay()), Streaks.best(days), daysPlayed)
+        }
+
+        private fun LevelStatsRow.toStats() = LevelStats(started, completed, abandoned, clean, bestMs, totalMs)
     }
 }

@@ -42,7 +42,7 @@ class GameRepositoryTest {
     }
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
-    private fun repo(limit: Int? = null) = GameRepository(db, TestData.source(limit = limit), Dispatchers.IO, clock) { ZoneOffset.UTC }
+    private fun repo(limit: Int? = null) = GameRepository(db, TestData.source(limit = limit), Dispatchers.IO, clock, { ZoneOffset.UTC })
 
     @After
     fun tearDown() {

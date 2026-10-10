@@ -19,13 +19,13 @@ interface GameDao {
     suspend fun get(id: Long): GameEntity?
 
     @Query(
-        "SELECT id, kind, level, elapsed_ms, filled_count, grid_summary FROM games WHERE status = 0 " +
+        "SELECT id, kind, level, daily_epoch_day, elapsed_ms, filled_count, grid_summary FROM games WHERE status = 0 " +
             "ORDER BY updated_at DESC, id DESC LIMIT 1",
     )
     fun continueCard(): Flow<ContinueRow?>
 
     @Query(
-        "SELECT id, kind, level, elapsed_ms, filled_count, grid_summary FROM games " +
+        "SELECT id, kind, level, daily_epoch_day, elapsed_ms, filled_count, grid_summary FROM games " +
             "WHERE status = 0 AND kind = 0 AND level = :level LIMIT 1",
     )
     suspend fun inProgress(level: Int): ContinueRow?
@@ -91,4 +91,41 @@ interface GameDao {
         gridSummary: String,
         boxFlags: Int,
     ): Int
+
+    // ---- Daily (US-014) ----
+
+    @Query("SELECT * FROM games WHERE daily_epoch_day = :day")
+    suspend fun daily(day: Long): GameEntity?
+
+    /** Only a set-aside (DISCARDED) daily row is ever deleted, so its date can be started again. */
+    @Query("DELETE FROM games WHERE id = :id AND status = 3")
+    suspend fun deleteDiscarded(id: Long): Int
+
+    /** The 7-day strip and today's row (LLD §2.1 "Past 7 dailies"). */
+    @Query("SELECT id, level, daily_epoch_day, status, elapsed_ms, hints1, hints2, hints3, mistakes, box_flags FROM games " +
+        "WHERE kind = 1 AND daily_epoch_day BETWEEN :from AND :to")
+    fun dailies(from: Long, to: Long): Flow<List<DailyRow>>
+
+    // ---- Streak and days played (US-015, PRD v1.3 §5, D-028) ----
+
+    /** Only on-the-day dailies count: completed, and started on their own date. Past dailies never extend the streak. */
+    @Query("SELECT daily_epoch_day FROM games WHERE kind = 1 AND status = 1 AND started_epoch_day = daily_epoch_day")
+    fun streakDays(): Flow<List<Long>>
+
+    /** Distinct dates with a completion: a daily on its daily date, any other game on its completion date. */
+    @Query("SELECT COUNT(DISTINCT COALESCE(daily_epoch_day, completed_epoch_day)) FROM games WHERE status = 1")
+    fun daysPlayed(): Flow<Int>
+
+    // ---- Stats (US-019): derived by query, never counters (ADR-006). Dailies count toward their level (D-019). ----
+
+    @Query(
+        "SELECT level, SUM(status <> 3) AS started, SUM(status = 1) AS completed, SUM(status = 2) AS abandoned, " +
+            "SUM(status = 1 AND clean) AS clean, MIN(CASE WHEN status = 1 AND clean THEN elapsed_ms END) AS best_ms, " +
+            "SUM(CASE WHEN status = 1 THEN elapsed_ms ELSE 0 END) AS total_ms FROM games GROUP BY level",
+    )
+    fun levelStats(): Flow<List<LevelStatsRow>>
+
+    /** The best-time check at completion (LLD §2.1): the level's best clean time, excluding this game. */
+    @Query("SELECT MIN(elapsed_ms) FROM games WHERE status = 1 AND clean = 1 AND level = :level AND id <> :id")
+    suspend fun bestCleanExcluding(level: Int, id: Long): Long?
 }
