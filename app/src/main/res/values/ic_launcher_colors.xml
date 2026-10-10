@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Launcher background: the brand ink in every theme (design-system §12). -->
+    <color name="ic_launcher_background">#1E2A47</color>
+</resources>

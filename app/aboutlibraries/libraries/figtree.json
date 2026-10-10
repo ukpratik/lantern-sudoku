@@ -1,0 +1,14 @@
+{
+  "uniqueId": "com.erikdkennedy:figtree",
+  "name": "Figtree",
+  "description": "UI and board typeface, bundled in the APK as a Latin subset of the 400, 500 and 700 instances. Copyright 2022 The Figtree Project Authors.",
+  "website": "https://github.com/erikdkennedy/figtree",
+  "developers": [
+    {
+      "name": "The Figtree Project Authors"
+    }
+  ],
+  "licenses": [
+    "OFL-1.1"
+  ]
+}

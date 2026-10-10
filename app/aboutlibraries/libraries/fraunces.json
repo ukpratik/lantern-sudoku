@@ -1,0 +1,14 @@
+{
+  "uniqueId": "com.undercasetype:fraunces",
+  "name": "Fraunces",
+  "description": "Display typeface (titles), bundled in the APK as a Latin subset of the 500 and 600 instances. Copyright 2018 The Fraunces Project Authors.",
+  "website": "https://github.com/undercasetype/Fraunces",
+  "developers": [
+    {
+      "name": "The Fraunces Project Authors"
+    }
+  ],
+  "licenses": [
+    "OFL-1.1"
+  ]
+}

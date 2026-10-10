@@ -35,7 +35,7 @@ fun StreakLine(stats: DailyStats, modifier: Modifier = Modifier) {
     val description = res.getString(R.string.streak_description, stats.current, stats.best, played)
     val head = line.substringBefore(" · ")
     Row(modifier.clearAndSetSemantics { contentDescription = description }, verticalAlignment = Alignment.CenterVertically) {
-        Icon(painterResource(R.drawable.ic_lightbulb), contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
+        Icon(painterResource(R.drawable.ic_lantern), contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
         Spacer(Modifier.width(8.dp))
         Text(
             buildAnnotatedString {

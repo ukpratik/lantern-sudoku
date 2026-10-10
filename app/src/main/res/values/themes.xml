@@ -5,5 +5,4 @@
         <item name="android:windowBackground">@color/lantern_bg</item>
     </style>
     <color name="lantern_bg">#FBF6EC</color>
-    <color name="lantern_accent">#E3A13A</color>
 </resources>
