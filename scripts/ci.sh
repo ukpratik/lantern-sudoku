@@ -15,7 +15,7 @@ step() { printf '\n==> %s\n' "$*"; }
 step "1/6 Unit tests"
 "${GRADLE[@]}" test
 
-step "2/6 Bank validator (placeholder until M1)"
+step "2/6 Bank validator (every record: two solution counters, logical solve, re-grade, frozen prefixes)"
 "${GRADLE[@]}" :tools:generator:validateBank
 
 step "3/6 Android Lint, both flavours"
