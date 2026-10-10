@@ -12,15 +12,16 @@ import java.time.LocalDate
 
 /**
  * Debug-build QA hooks (qa-handover "Debug hooks"; documented in 06-build/handover.md). The release source set has a
- * no-op twin, so none of this ships.
+ * no-op twin, so none of this ships. `--activity-single-top` makes the hooks work on a running app too (BL-016); without
+ * it they only work on a cold start.
  *
  * ```
- * adb shell am start -n io.github.ukpratik.lanternsudoku.debug/io.github.ukpratik.lanternsudoku.MainActivity --es dbg_load N-H-0123
- * adb shell am start -n io.github.ukpratik.lanternsudoku.debug/io.github.ukpratik.lanternsudoku.MainActivity --es dbg_load N-H-0000 --es dbg_board .84.1....2..58..4...
- * adb shell am start -n io.github.ukpratik.lanternsudoku.debug/io.github.ukpratik.lanternsudoku.MainActivity --ez dbg_near_solved true
- * adb shell am start -n io.github.ukpratik.lanternsudoku.debug/io.github.ukpratik.lanternsudoku.MainActivity --es dbg_date 2026-10-15
- * adb shell am start -n io.github.ukpratik.lanternsudoku.debug/io.github.ukpratik.lanternsudoku.MainActivity --es dbg_date clear
- * adb shell am start -n io.github.ukpratik.lanternsudoku.debug/io.github.ukpratik.lanternsudoku.MainActivity --es dbg_date 2026-10-15 --ez dbg_daily true
+ * adb shell am start --activity-single-top -n io.github.ukpratik.lanternsudoku.debug/io.github.ukpratik.lanternsudoku.MainActivity --es dbg_load N-H-0123
+ * adb shell am start --activity-single-top -n io.github.ukpratik.lanternsudoku.debug/io.github.ukpratik.lanternsudoku.MainActivity --es dbg_load N-H-0000 --es dbg_board .84.1....2..58..4...
+ * adb shell am start --activity-single-top -n io.github.ukpratik.lanternsudoku.debug/io.github.ukpratik.lanternsudoku.MainActivity --ez dbg_near_solved true
+ * adb shell am start --activity-single-top -n io.github.ukpratik.lanternsudoku.debug/io.github.ukpratik.lanternsudoku.MainActivity --es dbg_date 2026-10-15
+ * adb shell am start --activity-single-top -n io.github.ukpratik.lanternsudoku.debug/io.github.ukpratik.lanternsudoku.MainActivity --es dbg_date clear
+ * adb shell am start --activity-single-top -n io.github.ukpratik.lanternsudoku.debug/io.github.ukpratik.lanternsudoku.MainActivity --es dbg_date 2026-10-15 --ez dbg_daily true
  * ```
  */
 object DebugHooks {
