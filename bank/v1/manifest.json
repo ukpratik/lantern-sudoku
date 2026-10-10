@@ -1,0 +1,70 @@
+{
+  "format": 1,
+  "genConfig": 1,
+  "files": {
+    "newgame-easy.txt": {
+      "pool": "NEWGAME",
+      "level": "EASY",
+      "count": 2000,
+      "frozen": [
+        { "release": "0.1.0", "count": 2000, "sha256": "c8a15a60192294ef212d4d538ca1e585a85a00bf0cbd46cf39edeac33ce6ca9d" }
+      ]
+    },
+    "newgame-medium.txt": {
+      "pool": "NEWGAME",
+      "level": "MEDIUM",
+      "count": 2000,
+      "frozen": [
+        { "release": "0.1.0", "count": 2000, "sha256": "2016ccc070d2345489bfd7e8e6ff0e47bce2ee86dcfa0d599e33a54d12a9b574" }
+      ]
+    },
+    "newgame-hard.txt": {
+      "pool": "NEWGAME",
+      "level": "HARD",
+      "count": 2000,
+      "frozen": [
+        { "release": "0.1.0", "count": 2000, "sha256": "4db95f5fdd0aed427f664e0c4d730b726f686b5877577ea1d4c92411b6577f86" }
+      ]
+    },
+    "newgame-expert.txt": {
+      "pool": "NEWGAME",
+      "level": "EXPERT",
+      "count": 2000,
+      "frozen": [
+        { "release": "0.1.0", "count": 2000, "sha256": "501b78c5365d49c9aa1142782b6a26507b4b2b3b829a090379e52819eddc0dcf" }
+      ]
+    },
+    "daily-easy.txt": {
+      "pool": "DAILY",
+      "level": "EASY",
+      "count": 1040,
+      "frozen": [
+        { "release": "0.1.0", "count": 1040, "sha256": "f2dfb0e3cd60e73947392448621845b9ee4f98babb5474f3b521d03047991d83" }
+      ]
+    },
+    "daily-medium.txt": {
+      "pool": "DAILY",
+      "level": "MEDIUM",
+      "count": 1040,
+      "frozen": [
+        { "release": "0.1.0", "count": 1040, "sha256": "33175684c089c39a8e2abb3f93f09dd43cbe9bc19583fa325f786b136d8222b3" }
+      ]
+    },
+    "daily-hard.txt": {
+      "pool": "DAILY",
+      "level": "HARD",
+      "count": 1040,
+      "frozen": [
+        { "release": "0.1.0", "count": 1040, "sha256": "a773d5f73d90b1e0edfab4d7c5241434991988a565539ce086bb26feb8cba3ae" }
+      ]
+    },
+    "daily-expert.txt": {
+      "pool": "DAILY",
+      "level": "EXPERT",
+      "count": 520,
+      "frozen": [
+        { "release": "0.1.0", "count": 520, "sha256": "a5bab3b3b6c8ea5a4065b137c6c70218b2e9445d3546dea7a9572e336852029b" }
+      ]
+    }
+  }
+}
