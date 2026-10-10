@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- SPDX-License-Identifier: GPL-3.0-or-later -->
+<!-- API 30 and below (fullBackupContent). Same content as data_extraction_rules.xml (NFR-010). -->
+<full-backup-content>
+    <include domain="database" path="lantern.db" />
+    <include domain="file" path="datastore/" />
+</full-backup-content>

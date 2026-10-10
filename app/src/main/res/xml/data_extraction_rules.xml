@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- SPDX-License-Identifier: GPL-3.0-or-later -->
+<!-- API 31+. NFR-010 / D-011: back up and transfer saves (lantern.db) and settings (DataStore).
+     Stub until M2/M5 add the files; the include list is tightened in M5. -->
+<data-extraction-rules>
+    <cloud-backup>
+        <include domain="database" path="lantern.db" />
+        <include domain="file" path="datastore/" />
+    </cloud-backup>
+    <device-transfer>
+        <include domain="database" path="lantern.db" />
+        <include domain="file" path="datastore/" />
+    </device-transfer>
+</data-extraction-rules>

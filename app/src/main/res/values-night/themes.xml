@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.Lantern" parent="android:Theme.Material.NoActionBar">
+        <item name="android:windowBackground">@color/lantern_bg</item>
+    </style>
+    <color name="lantern_bg">#14161D</color>
+</resources>
