@@ -21,6 +21,8 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.PathEffect
+import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.semantics.contentDescription
@@ -36,6 +38,7 @@ import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import io.github.ukpratik.lanternsudoku.engine.game.BoardHighlights
+import io.github.ukpratik.lanternsudoku.engine.hint.HintView
 import io.github.ukpratik.lanternsudoku.engine.model.Masks
 import io.github.ukpratik.lanternsudoku.ui.theme.LanternColors
 import io.github.ukpratik.lanternsudoku.ui.theme.UiFamily
@@ -47,6 +50,8 @@ class BoardModel(
     val givens: BooleanArray,
     val notes: IntArray,
     val highlights: BoardHighlights,
+    /** The open hint's roles (US-012), or null. */
+    val hint: HintView? = null,
 )
 
 /** Per-cell TalkBack text and state; built by the screen from strings.xml (US-022). */
@@ -101,17 +106,25 @@ private fun DrawScope.drawBoard(m: BoardModel, k: LanternColors, measurer: TextM
     val h = m.highlights
     drawRect(k.cell)
 
-    // 1. Cell fills by priority: selected > conflict > same > peer.
+    // 1. Cell fills by priority (design §5): selected > conflict > same > cause (hatch) > house/target > peer.
+    val hint = m.hint
     for (i in 0 until 81) {
         val f = h.flags(i)
+        val cause = hint != null && hint.cause[i]
         val fill = when {
             f and BoardHighlights.SELECTED != 0 -> k.selected
             f and BoardHighlights.CONFLICT != 0 -> k.conflict
             f and BoardHighlights.SAME != 0 -> k.sameDigit
+            cause -> null
+            hint != null && hint.house[i] -> k.hintHouse
             f and BoardHighlights.PEER != 0 -> k.peer
             else -> null
-        } ?: continue
-        drawRect(fill, topLeft = cellOrigin(i, cs), size = Size(cs, cs))
+        }
+        if (fill != null) {
+            drawRect(fill, topLeft = cellOrigin(i, cs), size = Size(cs, cs))
+        } else if (cause) {
+            drawHatch(cellOrigin(i, cs), cs, k)
+        }
     }
 
     // 2. Lines: thin cell lines, then box lines (outer border included).
@@ -142,6 +155,27 @@ private fun DrawScope.drawBoard(m: BoardModel, k: LanternColors, measurer: TextM
             cornerRadius = CornerRadius(3.dp.toPx()), style = Stroke(ring))
     }
 
+    // 3b. Hint roles: the cause's dashed outline and the target's thick ring with a glow (shape, not colour alone).
+    if (hint != null) {
+        val dash = 2.dp.toPx()
+        for (i in 0 until 81) {
+            if (!hint.cause[i]) continue
+            val o = cellOrigin(i, cs)
+            val inset = 2.dp.toPx() + dash / 2
+            drawRoundRect(k.hintCauseLine, topLeft = Offset(o.x + inset, o.y + inset), size = Size(cs - 2 * inset, cs - 2 * inset),
+                cornerRadius = CornerRadius(5.dp.toPx()), style = Stroke(dash, pathEffect = PathEffect.dashPathEffect(floatArrayOf(4.dp.toPx(), 3.dp.toPx()))))
+        }
+        if (hint.target >= 0) {
+            val o = cellOrigin(hint.target, cs)
+            val center = Offset(o.x + cs / 2, o.y + cs / 2)
+            drawRect(Brush.radialGradient(listOf(Color.Transparent, k.glow), center, cs * 0.75f), topLeft = o, size = Size(cs, cs))
+            val ring = k.ringStroke.toPx()
+            val inset = 1.dp.toPx() + ring / 2
+            drawRoundRect(k.hintTargetRing, topLeft = Offset(o.x + inset, o.y + inset), size = Size(cs - 2 * inset, cs - 2 * inset),
+                cornerRadius = CornerRadius(8.dp.toPx()), style = Stroke(ring))
+        }
+    }
+
     // 4. Digits and notes.
     val digitStyle = TextStyle(fontFamily = UiFamily, fontSize = (cs * DIGIT_RATIO).toSp())
     val noteStyle = TextStyle(fontFamily = UiFamily, fontWeight = FontWeight.Medium, fontSize = (cs * NOTE_RATIO).toSp())
@@ -163,12 +197,24 @@ private fun DrawScope.drawBoard(m: BoardModel, k: LanternColors, measurer: TextM
             if (mistake) { // mistake marker: a dot under the digit (not colour alone)
                 drawCircle(k.danger, radius = 2.5.dp.toPx(), center = Offset(o.x + cs / 2, o.y + cs - 4.5.dp.toPx()))
             }
-        } else if (m.notes[i] != 0) {
-            val third = (cs - 4.dp.toPx()) / 3f
-            val inset = 2.dp.toPx()
-            for (d in Masks.digits(m.notes[i])) {
+        } else if ((hint?.candidates?.get(i)?.takeIf { it >= 0 } ?: m.notes[i]) != 0) {
+            // While a hint is open, role cells may show the true candidates for this hint only (US-012).
+            val mask = hint?.candidates?.get(i)?.takeIf { it >= 0 } ?: m.notes[i]
+            val role = hint != null && (hint.cause[i] || hint.target == i)
+            val inset = if (role) 3.dp.toPx() else 2.dp.toPx()
+            val third = (cs - 2 * inset) / 3f
+            for (d in Masks.digits(mask)) {
                 val center = Offset(o.x + inset + ((d - 1) % 3 + 0.5f) * third, o.y + inset + ((d - 1) / 3 + 0.5f) * third)
-                if (d == h.digit) { // same-digit note: a filled disc
+                val bit = Masks.bit(d)
+                if (hint != null && hint.struck[i] and bit != 0) { // ruled out: bold danger digit, struck through
+                    drawCentered(measurer.measure(d.toString(), noteStyle.copy(fontWeight = FontWeight.Bold)), k.danger, center)
+                    val half = cs * 0.12f
+                    drawLine(k.danger, Offset(center.x - half, center.y + half), Offset(center.x + half, center.y - half), 1.8.dp.toPx())
+                } else if (hint != null && ((hint.cause[i] && hint.key and bit != 0) || (hint.target == i && hint.targetKey and bit != 0))) { // the step's key candidate: a disc with an amber halo
+                    drawCircle(k.hintTargetRing, radius = cs * 0.155f + 1.5.dp.toPx(), center = center)
+                    drawCircle(k.noteHighlightBg, radius = cs * 0.155f, center = center)
+                    drawCentered(measurer.measure(d.toString(), noteStyle.copy(fontWeight = FontWeight.Bold)), k.noteHighlightFg, center)
+                } else if (d == h.digit) { // same-digit note: a filled disc
                     drawCircle(k.noteHighlightBg, radius = cs * 0.155f, center = center)
                     drawCentered(measurer.measure(d.toString(), noteStyle.copy(fontWeight = FontWeight.Bold)), k.noteHighlightFg, center)
                 } else {
@@ -186,6 +232,24 @@ private fun DrawScope.drawBoard(m: BoardModel, k: LanternColors, measurer: TextM
                 close()
             }
             drawPath(path, k.danger)
+        }
+        // Placed by hint: a small amber dot in the corner until the panel closes (design hint-stage-3).
+        if (hint != null && hint.placed == i) {
+            drawCircle(k.hintTargetRing, radius = 3.5.dp.toPx(), center = Offset(o.x + cs - 6.dp.toPx(), o.y + 6.dp.toPx()))
+        }
+    }
+}
+
+/** The cause hatch (design .cause): 135° stripes of cause-b over cause-a, clipped to the cell. */
+private fun DrawScope.drawHatch(o: Offset, cs: Float, k: LanternColors) {
+    drawRect(k.hintCauseA, topLeft = o, size = Size(cs, cs))
+    val step = 6.dp.toPx()
+    val w = 2.dp.toPx()
+    clipRect(o.x, o.y, o.x + cs, o.y + cs) {
+        var x = -cs
+        while (x < cs) {
+            drawLine(k.hintCauseB, Offset(o.x + x, o.y), Offset(o.x + x + cs, o.y + cs), w)
+            x += step
         }
     }
 }

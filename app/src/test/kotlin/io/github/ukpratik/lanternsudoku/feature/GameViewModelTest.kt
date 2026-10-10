@@ -189,4 +189,30 @@ class GameViewModelTest {
         assertThat(withTimeout(5_000) { m.eventFlow.first() }).isEqualTo(GameEvent.Leave)
         assertThat(repo.discardNotice.value).isTrue()
     }
+
+    @Test
+    fun hints_countsPerStageArePersisted_theClockKeepsRunning_andBackClosesThePanelFirst() = runBlocking<Unit> {
+        val id = repo.startNew(Level.MEDIUM)
+        val m = vm(id)
+        m.awaitGame()
+        m.onResume()
+        m.onAction(Action.OpenHint)
+        m.onAction(Action.HintNext) // Why
+        now += 4_000 // reading the explanation: the panel doesn't pause play time (PRD §5, TC-027)
+        m.onBack() // closes the panel, doesn't leave
+        assertThat(m.state.value.game!!.input.hint).isNull()
+        m.onAction(Action.OpenHint)
+        m.onAction(Action.HintNext)
+        m.onAction(Action.HintNext) // Do it
+        m.onAction(Action.CloseHint)
+        m.onPause()
+        m.onStop()
+        queue.flush()
+        assertThat(m.elapsed.value).isEqualTo(4_000)
+        val restored = vm(id).awaitGame()
+        assertThat(restored.counters.hints2).isEqualTo(1)
+        assertThat(restored.counters.hints3).isEqualTo(1)
+        assertThat(restored.input.hint).isNull()
+        assertThat(restored.boxFlags).isNotEqualTo(0) // the hint boxes are flagged for the share grid
+    }
 }

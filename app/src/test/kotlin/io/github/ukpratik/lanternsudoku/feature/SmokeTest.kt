@@ -71,4 +71,39 @@ class SmokeTest {
                 .fetchSemanticsNodes().isNotEmpty()
         }
     }
+
+    @Test
+    fun hint_opensInThePadSlot_walksWhereWhyDoIt_andPlacesADigit() {
+        compose.onNodeWithText("Easy").performClick()
+        compose.waitUntil(10_000) { cellTags().fetchSemanticsNodes().size == 81 }
+        val boardBefore = compose.onNodeWithTag("cell-80", useUnmergedTree = true).fetchSemanticsNode().boundsInRoot
+        fun emptyCount() = cellTags().fetchSemanticsNodes().count { node ->
+            node.config.getOrElseNullable(SemanticsProperties.ContentDescription) { null }?.single()?.contains("empty") == true
+        }
+        val empties = emptyCount()
+
+        compose.onNodeWithTag("tool-hint", useUnmergedTree = true).performClick()
+        compose.waitUntil(5_000) { compose.onAllNodes(hasTestTag("hint-panel")).fetchSemanticsNodes().isNotEmpty() }
+        // The panel replaces the pad; the board stays where it was (US-012).
+        assertThat(compose.onAllNodes(hasTestTag("key-1"), useUnmergedTree = true).fetchSemanticsNodes()).isEmpty()
+        assertThat(compose.onNodeWithTag("cell-80", useUnmergedTree = true).fetchSemanticsNode().boundsInRoot).isEqualTo(boardBefore)
+        compose.onNodeWithText("Where to look").assertExists()
+        compose.onNodeWithText("Why?").performClick()
+        compose.waitUntil(5_000) { compose.onAllNodes(hasText("Show me the digit")).fetchSemanticsNodes().isNotEmpty() }
+        compose.onNodeWithText("Answer cell").assertExists()
+        // TalkBack: the answer cell says its role.
+        compose.onNode(hasStateDescriptionContaining("answer cell"), useUnmergedTree = true).assertExists()
+        compose.onNodeWithText("Show me the digit").performClick()
+        compose.waitUntil(5_000) { compose.onAllNodes(hasText("Placed by hint")).fetchSemanticsNodes().isNotEmpty() }
+        assertThat(emptyCount()).isEqualTo(empties - 1)
+        compose.onNodeWithText("Done").performClick()
+        compose.waitUntil(5_000) { compose.onAllNodes(hasTestTag("key-1"), useUnmergedTree = true).fetchSemanticsNodes().isNotEmpty() }
+        // One Undo (the tool) reverts the hint's digit.
+        compose.onNodeWithTag("tool-undo", useUnmergedTree = true).performClick()
+        compose.waitUntil(5_000) { emptyCount() == empties }
+    }
+
+    private fun hasStateDescriptionContaining(text: String) = SemanticsMatcher("state contains '$text'") {
+        it.config.getOrElseNullable(SemanticsProperties.StateDescription) { null }?.contains(text) == true
+    }
 }

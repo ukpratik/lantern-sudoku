@@ -1,0 +1,139 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- SPDX-License-Identifier: GPL-3.0-or-later -->
+<!-- Teaching hints (US-012; design hint-stage-1/2/3, hint-error-first, hint-fallback). Voice: design-system §9:
+     plain and warm, with none of the banned words or guilt (TC-110 checks). %d placeholders here are digits 1–9, cell
+     positions or house numbers, so PluralsCandidate doesn't apply (see strings.xml). House and cell names are
+     filled in from the hint_house_* and hint_cell strings so translators can reorder them. -->
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <!-- Names -->
+    <string name="hint_house_row">row %1$d</string>
+    <string name="hint_house_col">column %1$d</string>
+    <string name="hint_house_box">box %1$d</string>
+    <string name="hint_rows" tools:ignore="PluralsCandidate">rows %1$d and %2$d</string>
+    <string name="hint_cols" tools:ignore="PluralsCandidate">columns %1$d and %2$d</string>
+    <string name="hint_cell">row %1$d, column %2$d</string>
+    <string name="hint_kind_row">row</string>
+    <string name="hint_kind_col">column</string>
+    <string name="hint_kind_box">box</string>
+    <string name="hint_kind_rows">rows</string>
+    <string name="hint_kind_cols">columns</string>
+
+    <!-- Techniques (the US-013 ladder) and their level chips -->
+    <string name="tech_full_house">Full house</string>
+    <string name="tech_hidden_single">Hidden single</string>
+    <string name="tech_naked_single">Naked single</string>
+    <string name="tech_pointing">Pointing</string>
+    <string name="tech_box_line">Box-line reduction</string>
+    <string name="tech_naked_pair">Naked pair</string>
+    <string name="tech_hidden_pair">Hidden pair</string>
+    <string name="tech_naked_triple">Naked triple</string>
+    <string name="tech_hidden_triple">Hidden triple</string>
+    <string name="tech_x_wing">X-Wing</string>
+    <string name="hint_chip_easy">Easy technique</string>
+    <string name="hint_chip_medium">Medium technique</string>
+    <string name="hint_chip_hard">Hard technique</string>
+    <string name="hint_chip_expert">Expert technique</string>
+
+    <!-- Stepper and status line -->
+    <string name="hint_stage_where">Where</string>
+    <string name="hint_stage_why">Why</string>
+    <string name="hint_stage_do">Do it</string>
+    <string name="hint_stage_done_cd">%1$s, done</string>
+    <string name="hint_stage_current_cd">%1$s, current stage</string>
+    <string name="hint_stage_upcoming_cd">%1$s, next</string>
+    <string name="hint_status_where">Hint · Where</string>
+    <string name="hint_status_why">Hint · Why</string>
+    <string name="hint_status_done">Hint · Done</string>
+    <string name="hint_status_placed">Hint · Placed</string>
+    <string name="hint_stepper_cd">Hint stages</string>
+
+    <!-- Stage 1 · Where -->
+    <string name="hint_where_title">Look at %1$s</string>
+    <string name="hint_where_digit" tools:ignore="PluralsCandidate">There\'s a useful pattern for the digit %1$d in the highlighted %2$s. Try to spot it, or go one step further.</string>
+    <string name="hint_where_pattern">There\'s a useful pattern in the highlighted %1$s. Try to spot it, or go one step further.</string>
+    <string name="hint_where_cell">One cell in the highlighted %1$s can only be one digit. Try to spot it, or go one step further.</string>
+    <string name="hint_where_full_house">The highlighted %1$s has just one empty cell left. Try to spot what goes there, or go one step further.</string>
+    <string name="hint_legend_where">Where to look</string>
+    <string name="hint_meta" tools:ignore="PluralsCandidate">Hints this game: %1$d · no limit, no cost</string>
+    <string name="hint_close">Close</string>
+    <string name="hint_why">Why?</string>
+
+    <!-- Stage 2 · Why: one explanation per technique. Dashed cells = the reason, the ringed cell = the answer. -->
+    <string name="tech_expl_full_house" tools:ignore="PluralsCandidate">Only one cell is still empty in %1$s, and the one digit %1$s is missing is %2$d. So the ringed cell must be %2$d.</string>
+    <string name="tech_expl_hidden_single" tools:ignore="PluralsCandidate">In %1$s, every other empty cell already sees a %2$d in its row, column or box (the dashed cells). So the %2$d can only go in the ringed cell.</string>
+    <string name="tech_expl_naked_single" tools:ignore="PluralsCandidate">The ringed cell already sees every digit except %1$d in its row, column and box (the dashed cells hold them). So it can only be %1$d.</string>
+    <string name="tech_expl_pointing" tools:ignore="PluralsCandidate">In %1$s, the %2$d can only go in the dashed cells, and they all lie in %3$s. So no other cell in %3$s can be %2$d.</string>
+    <string name="tech_expl_box_line" tools:ignore="PluralsCandidate">In %1$s, the %2$d can only go in the dashed cells, and they all lie in %3$s. So the %2$d for %1$s is one of them, and no other cell in %3$s can be %2$d.</string>
+    <string name="tech_expl_naked_pair" tools:ignore="PluralsCandidate">In %1$s, the two dashed cells can only be %2$d or %3$d, so between them they take both digits. No other cell in %1$s can be %2$d or %3$d.</string>
+    <string name="tech_expl_hidden_pair" tools:ignore="PluralsCandidate">In %1$s, the %2$d and the %3$d can only go in the two dashed cells, so those cells must hold them. Nothing else fits in those two cells.</string>
+    <string name="tech_expl_naked_triple" tools:ignore="PluralsCandidate">In %1$s, the three dashed cells can only be %2$d, %3$d or %4$d, so between them they take all three. No other cell in %1$s can be %2$d, %3$d or %4$d.</string>
+    <string name="tech_expl_hidden_triple" tools:ignore="PluralsCandidate">In %1$s, the %2$d, %3$d and %4$d can only go in the three dashed cells, so those cells must hold them. Nothing else fits in those three cells.</string>
+    <string name="tech_expl_x_wing_rows" tools:ignore="PluralsCandidate">In %1$s, the %2$d can only go in %3$s (the dashed corners). Whichever way it falls, each of those columns gets its %2$d from these two rows, so no other cell in them can be %2$d.</string>
+    <string name="tech_expl_x_wing_cols" tools:ignore="PluralsCandidate">In %1$s, the %2$d can only go in %3$s (the dashed corners). Whichever way it falls, each of those rows gets its %2$d from these two columns, so no other cell in them can be %2$d.</string>
+    <!-- What the elimination unlocks (the 2-step hint shown as one explanation) -->
+    <string name="tech_then_hidden" tools:ignore="PluralsCandidate">That leaves one place for %1$d in %2$s: the ringed cell.</string>
+    <string name="tech_then_naked" tools:ignore="PluralsCandidate">That leaves the ringed cell with one possible digit: %1$d.</string>
+    <!-- The last step of a multi-step hint (D-031) -->
+    <string name="tech_chain_hidden" tools:ignore="PluralsCandidate">With the earlier steps done, the %1$d has only one place left in %2$s: the ringed cell.</string>
+    <string name="tech_chain_naked" tools:ignore="PluralsCandidate">With the earlier steps done, the ringed cell has only one possible digit left: %1$d.</string>
+    <string name="hint_step_of" tools:ignore="PluralsCandidate">Step %1$d of %2$d</string>
+    <string name="hint_step_back">Back</string>
+    <string name="hint_step_next">Next</string>
+    <string name="hint_step_back_cd">Previous step</string>
+    <string name="hint_step_next_cd">Next step</string>
+    <string name="hint_legend_target">Answer cell</string>
+    <string name="hint_legend_cause">Reason</string>
+    <string name="hint_legend_struck">Ruled out</string>
+    <string name="hint_got_it">Got it</string>
+    <string name="hint_show_digit">Show me the digit</string>
+
+    <!-- Stage 3 · Do it -->
+    <string name="hint_placed_title" tools:ignore="PluralsCandidate">%1$d goes in %2$s</string>
+    <string name="hint_chip_placed">Placed</string>
+    <string name="hint_done_notes" tools:ignore="PluralsCandidate">%1$s in %2$s showed where the %3$d goes. We placed it and tidied the notes it rules out. One Undo reverts all of it.</string>
+    <string name="hint_done_plain" tools:ignore="PluralsCandidate">%1$s in %2$s showed where the %3$d goes. We placed it for you. One Undo reverts it.</string>
+    <string name="hint_done_chain_notes" tools:ignore="PluralsCandidate">%1$s showed where the %2$d goes. We placed it and tidied the notes it rules out. One Undo reverts all of it.</string>
+    <string name="hint_done_chain_plain" tools:ignore="PluralsCandidate">%1$s showed where the %2$d goes. We placed it for you. One Undo reverts it.</string>
+    <!-- A multi-step hint's lead-in for hint_done_chain_*: "Pointing in box 8 and 3 more steps" -->
+    <plurals name="hint_chain_lead">
+        <item quantity="one">%2$s in %3$s and %1$d more step</item>
+        <item quantity="other">%2$s in %3$s and %1$d more steps</item>
+    </plurals>
+    <string name="hint_legend_placed">Placed by hint</string>
+    <plurals name="hint_notes_removed">
+        <item quantity="one">Removed from %d note</item>
+        <item quantity="other">Removed from %d notes</item>
+    </plurals>
+    <string name="hint_meta_placed" tools:ignore="PluralsCandidate">Hints this game: %1$d · this one placed a digit, so this game won\'t be a clean solve</string>
+    <string name="hint_meta_plain" tools:ignore="PluralsCandidate">Hints this game: %1$d</string>
+    <string name="hint_undo">Undo</string>
+    <string name="hint_done">Done</string>
+
+    <!-- Error first -->
+    <string name="hint_wrong_title">A digit on the board is wrong</string>
+    <string name="hint_wrong_where">Before the next step, something in the highlighted box doesn\'t match the solution. Take another look, or let the hint show you the cell.</string>
+    <string name="hint_wrong_legend_box">Box with the wrong digit</string>
+    <string name="hint_wrong_meta">Stage 2 rings the cell · stage 3 removes the digit</string>
+    <string name="hint_wrong_show">Show the cell</string>
+    <string name="hint_wrong_cell_title" tools:ignore="PluralsCandidate">This %1$d doesn\'t fit here</string>
+    <string name="hint_wrong_cell_body" tools:ignore="PluralsCandidate">The ringed %1$d in %2$s doesn\'t match the solution. Try another digit there, or let the hint remove it.</string>
+    <string name="hint_wrong_legend_cell">Wrong digit</string>
+    <string name="hint_wrong_remove">Remove it</string>
+    <string name="hint_wrong_removed_title" tools:ignore="PluralsCandidate">Removed the %1$d from %2$s</string>
+    <string name="hint_chip_removed">Removed</string>
+    <string name="hint_wrong_removed_body">That cell is empty again, so you can carry on from here. One Undo puts the digit back.</string>
+
+    <!-- Fallback (no explainable step) -->
+    <string name="hint_fallback_eyebrow">Hint · no step to explain here</string>
+    <string name="hint_fallback_announce">no step to explain here</string>
+    <string name="hint_fallback_body">This position needs a step our hints can\'t explain yet, so we placed one digit to keep you moving. One Undo reverts it.</string>
+
+    <!-- TalkBack (US-022): the panel announcement and the role of each cell while a hint is open -->
+    <string name="hint_announce">Hint, %1$s. %2$s. %3$s</string>
+    <string name="hint_role_target">answer cell</string>
+    <string name="hint_role_cause">reason</string>
+    <string name="hint_role_struck">%1$s ruled out</string>
+    <string name="hint_role_where">where to look</string>
+    <string name="hint_role_wrong">wrong digit</string>
+    <string name="hint_role_placed">placed by hint</string>
+</resources>

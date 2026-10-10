@@ -96,6 +96,7 @@ class GameViewModel(
                 _elapsed.value = r.elapsedMs
                 _state.update { it.copy(loading = false, game = r.state, level = r.level) }
                 if (DebugHooks.ENABLED && DebugHooks.consumeNearSolved()) debugNearSolved()
+                if (DebugHooks.ENABLED) DebugHooks.consumeBoard()?.let(::debugBoard)
                 if (resumed) startClock()
             }
             is LoadResult.Discarded, LoadResult.Missing -> events.send(GameEvent.Leave)
@@ -185,6 +186,14 @@ class GameViewModel(
         if (!DebugHooks.ENABLED) return
         val game = _state.value.game ?: return
         val next = DebugHooks.nearSolved(game)
+        _state.update { it.copy(game = next) }
+        persist(next)
+    }
+
+    /** Debug builds only (QA hook `dbg_board`, with `dbg_load`): fill in a fixed position's entries. */
+    private fun debugBoard(board: String) {
+        val game = _state.value.game ?: return
+        val next = DebugHooks.withBoard(game, board)
         _state.update { it.copy(game = next) }
         persist(next)
     }

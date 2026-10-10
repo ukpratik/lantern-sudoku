@@ -73,6 +73,8 @@ import io.github.ukpratik.lanternsudoku.engine.game.BoardHighlights
 import io.github.ukpratik.lanternsudoku.engine.game.GameState
 import io.github.ukpratik.lanternsudoku.engine.game.Highlights
 import io.github.ukpratik.lanternsudoku.engine.game.Status
+import io.github.ukpratik.lanternsudoku.engine.hint.HintPlan
+import io.github.ukpratik.lanternsudoku.engine.hint.HintView
 import io.github.ukpratik.lanternsudoku.engine.model.Level
 import io.github.ukpratik.lanternsudoku.engine.model.Masks
 import io.github.ukpratik.lanternsudoku.platform.DebugHooks
@@ -179,7 +181,8 @@ private fun GameContent(
 ) {
     val k = LocalLanternColors.current
     val levelName = stringResource(level.label)
-    val status = statusText(game)
+    val resources = LocalResources.current
+    val status = statusText(game) ?: HintCopy.of(resources, game)?.status
     // The space under the board: whatever is left, but never less than the controls need (then the column scrolls).
     val above = BAR + (if (geo.compact) 8f else STATUS) + geo.board
     val minBottom = geo.controls - (above - geo.board)
@@ -206,7 +209,7 @@ private fun GameContent(
         }
         val showMistakes = settings.showMistakes || game.overrides.showMistakes
         val highlights = Highlights.of(game, showMistakes = showMistakes, highlightSame = settings.highlightSameDigit)
-        val resources = LocalResources.current
+        val hintView = HintView.of(game)
         Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
             Board(
                 model = BoardModel(
@@ -214,10 +217,11 @@ private fun GameContent(
                     givens = BooleanArray(81) { game.isGiven(it) },
                     notes = IntArray(81) { game.notes(it) },
                     highlights = highlights,
+                    hint = hintView,
                 ),
                 size = geo.board.dp,
                 colors = k,
-                labels = cellLabels(resources, game, highlights),
+                labels = cellLabels(resources, game, highlights, hintView),
                 onTapCell = { vm.onAction(Action.TapCell(it)) },
             )
         }
@@ -226,7 +230,7 @@ private fun GameContent(
                 Status.LIMIT -> PanelKind.LIMIT
                 Status.ALMOST -> PanelKind.ALMOST
                 Status.COMPLETED -> PanelKind.COMPLETED
-                Status.PLAYING -> PanelKind.PAD
+                Status.PLAYING -> if (game.input.hint != null) PanelKind.HINT else PanelKind.PAD
             }
             AnimatedContent(panel, transitionSpec = { fadeIn(tween(220)) togetherWith fadeOut(tween(150)) }, label = "pad-slot") { kind ->
                 when (kind) {
@@ -236,6 +240,7 @@ private fun GameContent(
                         Controls(game, geo.compact, k, vm::onAction)
                         Spacer(Modifier.height(if (geo.compact) 8.dp else 12.dp))
                     }
+                    PanelKind.HINT -> HintPanel(game, vm::onAction)
                     PanelKind.LIMIT -> GamePanel(
                         icon = R.drawable.ic_flag,
                         title = stringResource(R.string.limit_title, game.counters.mistakes),
@@ -270,7 +275,7 @@ private fun GameContent(
     }
 }
 
-private enum class PanelKind { PAD, LIMIT, ALMOST, COMPLETED }
+private enum class PanelKind { PAD, HINT, LIMIT, ALMOST, COMPLETED }
 
 @Composable
 private fun GameBar(
@@ -374,16 +379,20 @@ private fun statusText(game: GameState): String? {
     }
 }
 
-/** US-022 basic labels: "Row r, column c, given d | entry d | empty, notes 1 2 4" + selected / conflict / mistake. */
-private fun cellLabels(res: Resources, game: GameState, h: BoardHighlights): CellLabels = CellLabels(
+/**
+ * US-022 basic labels: "Row r, column c, given d | entry d | empty, notes 1 2 4" + selected / conflict / mistake. While
+ * a hint is open, role cells add their role ("answer cell", "reason", "9 ruled out") and show the hint's candidates.
+ */
+internal fun cellLabels(res: Resources, game: GameState, h: BoardHighlights, hint: HintView? = null): CellLabels = CellLabels(
     description = { i ->
         val r = i / 9 + 1
         val c = i % 9 + 1
         val v = game.value(i)
+        val notes = hint?.candidates?.get(i)?.takeIf { it >= 0 } ?: game.notes(i)
         when {
             game.isGiven(i) -> res.getString(R.string.cell_given, r, c, v)
             v != 0 -> res.getString(R.string.cell_entry, r, c, v)
-            game.notes(i) != 0 -> res.getString(R.string.cell_notes, r, c, Masks.digits(game.notes(i)).joinToString(" "))
+            notes != 0 -> res.getString(R.string.cell_notes, r, c, Masks.digits(notes).joinToString(" "))
             else -> res.getString(R.string.cell_empty, r, c)
         }
     },
@@ -392,9 +401,21 @@ private fun cellLabels(res: Resources, game: GameState, h: BoardHighlights): Cel
             if (h.has(i, BoardHighlights.SELECTED)) add(res.getString(R.string.cell_selected))
             if (h.has(i, BoardHighlights.MISTAKE)) add(res.getString(R.string.cell_mistake))
             if (h.has(i, BoardHighlights.CONFLICT)) add(res.getString(R.string.cell_conflict))
+            if (hint != null) addAll(hintRoles(res, game, hint, i))
         }.takeIf { it.isNotEmpty() }?.joinToString(", ")
     },
 )
+
+private fun hintRoles(res: Resources, game: GameState, hint: HintView, i: Int): List<String> = buildList {
+    val wrong = game.input.hint?.plan is HintPlan.WrongDigit
+    when {
+        hint.placed == i -> add(res.getString(R.string.hint_role_placed))
+        hint.target == i -> add(res.getString(if (wrong) R.string.hint_role_wrong else R.string.hint_role_target))
+    }
+    if (hint.cause[i]) add(res.getString(R.string.hint_role_cause))
+    if (hint.struck[i] != 0) add(res.getString(R.string.hint_role_struck, Masks.digits(hint.struck[i]).joinToString(" ")))
+    if (isEmpty() && hint.house[i] && hint.target < 0) add(res.getString(R.string.hint_role_where))
+}
 
 /** Non-blocking save-failed message above the pad, never over keys or the board (design snackbar-save-failed). */
 @Composable

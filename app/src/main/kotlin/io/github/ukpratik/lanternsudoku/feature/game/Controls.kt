@@ -242,8 +242,7 @@ private fun tools(game: GameState): List<Tool> {
             on = game.input.notesMode,
             action = Action.ToggleNotes,
         ),
-        // Teaching hints arrive in M3 (US-012): the button is shown, disabled.
-        Tool("hint", R.drawable.ic_lightbulb, R.string.tool_hint, enabled = false, action = null, tint = hintTint),
+        Tool("hint", R.drawable.ic_lightbulb, R.string.tool_hint, action = Action.OpenHint, tint = hintTint),
     )
 }
 
@@ -273,7 +272,6 @@ private fun ToolButton(t: Tool, compact: Boolean, onAction: (Action) -> Unit, mo
     val scheme = MaterialTheme.colorScheme
     val label = stringResource(t.label)
     val state = when {
-        !t.enabled && t.action == null -> stringResource(R.string.tool_state, label, stringResource(R.string.hint_soon))
         !t.enabled -> stringResource(R.string.tool_state, label, stringResource(R.string.unavailable))
         t.sub != null -> stringResource(R.string.tool_state, label, stringResource(t.sub))
         t.on -> stringResource(R.string.tool_state, label, stringResource(R.string.on))
