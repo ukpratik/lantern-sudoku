@@ -1,4 +1,129 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources>
+<!-- SPDX-License-Identifier: GPL-3.0-or-later -->
+<!-- All user-facing copy (LLD §1). Voice and wording: design-system §9. -->
+<!-- PluralsCandidate is ignored where %d is a digit 1–9 or a cell position, or "N left" (reads the same for 1). -->
+<resources xmlns:tools="http://schemas.android.com/tools">
     <string name="app_name">Lantern Sudoku</string>
+
+    <!-- Levels (US-002) -->
+    <string name="level_easy">Easy</string>
+    <string name="level_medium">Medium</string>
+    <string name="level_hard">Hard</string>
+    <string name="level_expert">Expert</string>
+    <string name="level_summary_easy">Singles only. A gentle way in.</string>
+    <string name="level_summary_medium">Adds pointing, box-line and naked pairs.</string>
+    <string name="level_summary_hard">Adds hidden pairs and triples.</string>
+    <string name="level_summary_expert">Adds the X-Wing.</string>
+
+    <!-- Play tab (US-001, design play-tab, play-tab-first-run) -->
+    <string name="settings">Settings</string>
+    <string name="greeting_first_run">No sign-up, no ads. Pick a puzzle whenever you\'re ready.</string>
+    <string name="continue_eyebrow">CONTINUE</string>
+    <string name="continue_meta">%1$s · %2$d of 81 cells</string>
+    <string name="resume">Resume</string>
+    <string name="continue_card_description">Continue %1$s, %2$s, %3$d of 81 cells</string>
+    <string name="today_title">Today\'s puzzle</string>
+    <string name="today_soon">Daily puzzles arrive in the next build</string>
+    <string name="play">Play</string>
+    <string name="new_game">New game</string>
+    <string name="pick_a_level">Pick a level</string>
+    <string name="badge_in_progress">In progress</string>
+    <string name="badge_start_here">Start here</string>
+    <string name="save_discarded_notice">We couldn\'t open your last game. Your stats are safe.</string>
+    <string name="dismiss">Dismiss</string>
+    <string name="tab_play">Play</string>
+    <string name="tab_daily">Daily</string>
+    <string name="tab_stats">Stats</string>
+    <string name="tab_coming_soon">This tab arrives in a later build.</string>
+
+    <!-- Continue-or-new sheet (US-002, design level-picker-continue-or-new) -->
+    <string name="sheet_title">You have a %1$s game going</string>
+    <string name="sheet_meta">%1$s played · %2$d of 81 cells</string>
+    <string name="sheet_continue">Continue this game</string>
+    <string name="sheet_start_new">Start a new %1$s puzzle</string>
+    <string name="sheet_fine_print">Starting new counts the current game as abandoned in your stats.</string>
+
+    <!-- Game (US-004 to US-011, design game-*) -->
+    <string name="back">Back</string>
+    <string name="pause">Pause</string>
+    <string name="more">More options</string>
+    <string name="restart_puzzle">Restart puzzle</string>
+    <string name="mistakes_count">Mistakes %1$d</string>
+    <string name="mistakes_of_limit">Mistakes %1$d of %2$d</string>
+    <string name="status_selected" tools:ignore="PluralsCandidate">Row %1$d, column %2$d selected</string>
+    <string name="status_locked" tools:ignore="PluralsCandidate">%1$d locked · tap cells to place</string>
+    <string name="status_locked_notes" tools:ignore="PluralsCandidate">%1$d locked · tap cells to add or remove the mark</string>
+    <string name="status_erase" tools:ignore="PluralsCandidate">%1$d locked · erase on · tap entries to clear</string>
+    <string name="status_notes">Notes on · digits add or remove marks</string>
+    <string name="status_limit">Mistake limit reached</string>
+    <string name="status_almost">Board full</string>
+    <string name="status_completed">Solved</string>
+    <string name="tool_undo">Undo</string>
+    <string name="tool_redo">Redo</string>
+    <string name="tool_erase">Erase</string>
+    <string name="tool_notes">Notes</string>
+    <string name="tool_hint">Hint</string>
+    <string name="on">On</string>
+    <string name="off">Off</string>
+    <string name="tool_state">%1$s, %2$s</string>
+    <string name="unavailable">unavailable</string>
+    <string name="hint_soon">coming soon</string>
+    <string name="key_left" tools:ignore="PluralsCandidate">%1$d, %2$d left</string>
+    <string name="key_locked" tools:ignore="PluralsCandidate">%1$d, locked, %2$d left</string>
+    <string name="key_complete">%1$d, complete</string>
+    <string name="key_note_mode" tools:ignore="PluralsCandidate">%1$d, %2$d left, note mode</string>
+
+    <!-- Cells (US-022; basic labels in M2) -->
+    <string name="cell_given">Row %1$d, column %2$d, given %3$d</string>
+    <string name="cell_entry">Row %1$d, column %2$d, entry %3$d</string>
+    <string name="cell_empty">Row %1$d, column %2$d, empty</string>
+    <string name="cell_notes">Row %1$d, column %2$d, empty, notes %3$s</string>
+    <string name="cell_selected">selected</string>
+    <string name="cell_conflict">conflict</string>
+    <string name="cell_mistake">mistake</string>
+
+    <!-- Panels (US-010, US-011; design sheet-limit-reached, sheet-almost) -->
+    <string name="limit_title" tools:ignore="PluralsCandidate">That\'s %1$d mistakes</string>
+    <string name="limit_body">You set a limit of %1$d. Your game isn\'t over: keep going without the limit, or start this puzzle again.</string>
+    <string name="limit_fine_print">Keep playing turns the limit off for this game.</string>
+    <string name="keep_playing">Keep playing</string>
+    <string name="almost_title">Almost! Some cells don\'t fit.</string>
+    <string name="almost_body">Your board is full, but a few digits don\'t match the solution. Take your time.</string>
+    <string name="show_them">Show them</string>
+    <string name="keep_looking">Keep looking</string>
+
+    <!-- Completion (minimal in M2; the full summary is US-018 in M4) -->
+    <string name="completed_title">Nice work.</string>
+    <string name="completed_meta">%1$s · %2$s · %3$s</string>
+    <string name="new_level_game">New %1$s game</string>
+    <string name="back_to_play">Back to Play</string>
+    <plurals name="mistakes_plural">
+        <item quantity="one">1 mistake</item>
+        <item quantity="other">%d mistakes</item>
+    </plurals>
+    <string name="no_mistakes">no mistakes</string>
+
+    <!-- Pause (design pause) -->
+    <string name="paused">Paused</string>
+    <string name="paused_meta">%1$s · %2$s · %3$d of 81 cells</string>
+    <string name="restart_hint">Clears your entries, notes and time</string>
+    <string name="game_saved">Your game is saved</string>
+    <string name="restart_dialog_title">Restart this puzzle?</string>
+    <string name="restart_dialog_body">Your entries, notes and time will be cleared.</string>
+    <string name="cancel">Cancel</string>
+    <string name="restart">Restart</string>
+
+    <!-- Save failed (US-003, design snackbar-save-failed) -->
+    <string name="save_failed">Couldn\'t save your last move. Your phone may be low on storage.</string>
+    <string name="retry">Retry</string>
+    <string name="open_failed">Couldn\'t open a puzzle. Try another level.</string>
+
+    <!-- Settings (US-010 only in M2; the full screen is US-023 in M6) -->
+    <string name="settings_mistakes_header">Mistakes</string>
+    <string name="settings_show_mistakes">Show mistakes</string>
+    <string name="settings_show_mistakes_summary">Mark digits that don\'t match the solution</string>
+    <string name="settings_mistake_limit">Mistake limit</string>
+    <string name="settings_mistake_limit_summary">Never a game over: you can always keep playing</string>
+    <string name="settings_limit_needs_show">Available while Show mistakes is on</string>
+    <string name="settings_limit_off">Off</string>
 </resources>

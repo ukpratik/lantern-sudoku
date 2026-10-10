@@ -1,0 +1,110 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+package io.github.ukpratik.lanternsudoku.ui.theme
+
+import androidx.compose.material3.ColorScheme
+import androidx.compose.material3.lightColorScheme
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.dp
+
+/** One complete theme: Material roles + board colours (LLD §4.11). */
+data class LanternPalette(val colorScheme: ColorScheme, val lantern: LanternColors)
+
+/**
+ * Palettes transcribed from `product/04-design/final/assets/tokens.css` (design-system §1–2), every M3 role set.
+ * M2 ships Light only; M5 adds Dark, HC light and HC dark as further constants here (US-020).
+ */
+object Palettes {
+    val Light = LanternPalette(
+        colorScheme = lightColorScheme(
+            primary = Color(0xFF9A5B00),
+            onPrimary = Color(0xFFFBF6EC),
+            primaryContainer = Color(0xFFE3A13A),
+            onPrimaryContainer = Color(0xFF1E2A47),
+            inversePrimary = Color(0xFFF6C877),
+            secondary = Color(0xFF1E2A47),
+            onSecondary = Color(0xFFFBF6EC),
+            secondaryContainer = Color(0xFFF6E2B8),
+            onSecondaryContainer = Color(0xFF1E2A47),
+            tertiary = Color(0xFF7A4A00),
+            onTertiary = Color(0xFFFBF6EC),
+            tertiaryContainer = Color(0xFFDCE3EE),
+            onTertiaryContainer = Color(0xFF1E2A47),
+            background = Color(0xFFFBF6EC),
+            onBackground = Color(0xFF1E2A47),
+            surface = Color(0xFFFBF6EC),
+            onSurface = Color(0xFF1E2A47),
+            surfaceVariant = Color(0xFFF3EADB),
+            onSurfaceVariant = Color(0xFF5A6176),
+            surfaceTint = Color.Transparent,
+            inverseSurface = Color(0xFF1E2A47),
+            inverseOnSurface = Color(0xFFFBF6EC),
+            error = Color(0xFFA3231B),
+            onError = Color(0xFFFBF6EC),
+            errorContainer = Color(0xFFF8DAD4),
+            onErrorContainer = Color(0xFF5C120C),
+            outline = Color(0xFF857660),
+            outlineVariant = Color(0xFFE4D7BE),
+            scrim = Color(0xFF14161D),
+            surfaceBright = Color(0xFFFBF6EC),
+            surfaceContainer = Color(0xFFF3EADB),
+            surfaceContainerHigh = Color(0xFFEFE4D1),
+            surfaceContainerHighest = Color(0xFFEADDC6),
+            surfaceContainerLow = Color(0xFFF7F0E3),
+            surfaceContainerLowest = Color(0xFFFFFCF6),
+            surfaceDim = Color(0xFFE6DBC8),
+            primaryFixed = Color(0xFFF6E2B8),
+            primaryFixedDim = Color(0xFFE3A13A),
+            onPrimaryFixed = Color(0xFF1E2A47),
+            onPrimaryFixedVariant = Color(0xFF8A5300),
+            secondaryFixed = Color(0xFFF6E2B8),
+            secondaryFixedDim = Color(0xFFE3A13A),
+            onSecondaryFixed = Color(0xFF1E2A47),
+            onSecondaryFixedVariant = Color(0xFF8A5300),
+            tertiaryFixed = Color(0xFFDCE3EE),
+            tertiaryFixedDim = Color(0xFFDCE3EE),
+            onTertiaryFixed = Color(0xFF1E2A47),
+            onTertiaryFixedVariant = Color(0xFF1E2A47),
+        ),
+        lantern = LanternColors(
+            cell = Color(0xFFFBF6EC),
+            line = Color(0xFF9A8A6E),
+            boxLine = Color(0xFF3B4560),
+            given = Color(0xFF1E2A47),
+            entry = Color(0xFF7A4A00),
+            note = Color(0xFF4F5670),
+            selected = Color(0xFFFAD48A),
+            selectedRing = Color(0xFF9A5B00),
+            glow = Color(0xFFE3A13A).copy(alpha = 0.55f),
+            peer = Color(0xFFF0E5CF),
+            sameDigit = Color(0xFFDCE3EE),
+            noteHighlightBg = Color(0xFF7A4A00),
+            noteHighlightFg = Color(0xFFFBF6EC),
+            conflict = Color(0xFFF8DAD4),
+            danger = Color(0xFFA3231B),
+            hintHouse = Color(0xFFEFE0C4),
+            hintTargetRing = Color(0xFF9A5B00),
+            hintCauseA = Color(0xFFECE5F1),
+            hintCauseB = Color(0xFFDCD3E6),
+            hintCauseLine = Color(0xFF1E2A47),
+            eliminated = Color(0xFFA3231B),
+            keyBg = Color(0xFFF3EADB),
+            keyBorder = Color(0xFFE4D7BE),
+            keyFg = Color(0xFF1E2A47),
+            keyCount = Color(0xFF5A6176),
+            lockedKeyBg = Color(0xFF1E2A47),
+            lockedKeyFg = Color(0xFFFBF6EC),
+            lockedKeyRing = Color(0xFFE3A13A),
+            lockedKeyCount = Color(0xFFF6E2B8),
+            doneKeyFg = Color(0xFF5A6176),
+            doneKeyBorder = Color(0xFF8F8068),
+            hintIcon = Color(0xFF9A5B00),
+            inkCard = Color(0xFF1E2A47),
+            onInk = Color(0xFFFBF6EC),
+            onInkMuted = Color(0xFFDCD5C8),
+            onInkAccent = Color(0xFFF6C877),
+            ringStroke = 3.dp,
+            boxStroke = 2.5.dp,
+            markSize = 11.dp,
+        ),
+    )
+}

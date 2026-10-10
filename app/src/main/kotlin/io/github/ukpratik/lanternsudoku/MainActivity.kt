@@ -1,51 +1,62 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 package io.github.ukpratik.lanternsudoku
 
+import android.content.Intent
+import android.graphics.Color
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.isSystemInDarkTheme
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.safeDrawingPadding
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.material3.darkColorScheme
-import androidx.compose.material3.lightColorScheme
-import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.tooling.preview.Preview
+import androidx.lifecycle.lifecycleScope
+import io.github.ukpratik.lanternsudoku.nav.LanternNavHost
+import io.github.ukpratik.lanternsudoku.platform.DebugCommand
+import io.github.ukpratik.lanternsudoku.platform.DebugHooks
+import io.github.ukpratik.lanternsudoku.ui.theme.LanternTheme
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.receiveAsFlow
+import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
+    private val openGame = Channel<Long>(Channel.BUFFERED)
+
     override fun onCreate(savedInstanceState: Bundle?) {
-        enableEdgeToEdge()
+        // M2 ships the light palette only (M5 adds dark and high contrast), so the system bars keep dark icons.
+        enableEdgeToEdge(
+            statusBarStyle = SystemBarStyle.light(Color.TRANSPARENT, Color.TRANSPARENT),
+            navigationBarStyle = SystemBarStyle.light(Color.TRANSPARENT, Color.TRANSPARENT),
+        )
         super.onCreate(savedInstanceState)
-        setContent { PlaceholderScreen() }
-    }
-}
-
-// M0 placeholder. The real theme (four palettes, fonts) arrives with the Play tab in M2 and M5.
-private val PaperColors = lightColorScheme(background = Color(0xFFFBF6EC), onBackground = Color(0xFF1E2A47))
-private val NightColors = darkColorScheme(background = Color(0xFF14161D), onBackground = Color(0xFFECE6DA))
-
-@Composable
-private fun PlaceholderScreen() {
-    MaterialTheme(colorScheme = if (isSystemInDarkTheme()) NightColors else PaperColors) {
-        Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
-            Box(modifier = Modifier.safeDrawingPadding(), contentAlignment = Alignment.Center) {
-                Text(text = stringResource(R.string.app_name), style = MaterialTheme.typography.headlineMedium)
+        val container = (application as LanternApp).container
+        setContent {
+            LanternTheme {
+                LanternNavHost(container, openGame.receiveAsFlow())
             }
         }
+        if (savedInstanceState == null) handleDebug(intent)
     }
-}
 
-@Preview
-@Composable
-private fun PlaceholderScreenPreview() {
-    PlaceholderScreen()
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        handleDebug(intent)
+    }
+
+    /** Debug-build QA hooks only; the release [DebugHooks] never returns a command. */
+    private fun handleDebug(intent: Intent?) {
+        if (!DebugHooks.ENABLED) return
+        val command = DebugHooks.parse(intent) ?: return
+        val container = (application as LanternApp).container
+        lifecycleScope.launch {
+            val id = when (command) {
+                is DebugCommand.Load -> container.gameRepository.startWith(command.id, abandonExisting = true)
+                DebugCommand.NearSolved -> {
+                    val card = container.gameRepository.continueCard().first() ?: return@launch
+                    DebugHooks.requestNearSolved()
+                    card.gameId
+                }
+            }
+            openGame.send(id)
+        }
+    }
 }
