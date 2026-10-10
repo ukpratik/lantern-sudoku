@@ -21,4 +21,4 @@ rootProject.name = "lantern-sudoku"
 include(":engine")
 include(":app")
 include(":tools:generator")
-// :baselineprofile is added at M5 (build plan), when there is a real startup path to profile.
+include(":baselineprofile")

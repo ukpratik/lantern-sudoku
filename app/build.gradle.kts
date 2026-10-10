@@ -5,6 +5,7 @@ plugins {
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.ksp)
     alias(libs.plugins.aboutlibraries.android)
+    alias(libs.plugins.baselineprofile)
 }
 
 android {
@@ -12,9 +13,10 @@ android {
 
     defaultConfig {
         applicationId = "io.github.ukpratik.lanternsudoku" // permanent after first publication (ADR-010)
-        // versionCode = MAJOR × 10000 + MINOR × 100 + PATCH (ADR-012). Pre-release 0.1.0 until 1.0.0.
-        versionCode = 100
-        versionName = "0.1.0"
+        // versionCode = MAJOR × 10000 + MINOR × 100 + PATCH (ADR-012). Release candidates share the final version's
+        // code minus one per remaining candidate slot: 1.0.0-rc1 = 9901 < 1.0.0 = 10000 (D-035).
+        versionCode = 9901
+        versionName = "1.0.0-rc1"
     }
 
     // ADR-012: keys live in ~/.android-keys/, passwords in ~/.gradle/gradle.properties, never in the repo.
@@ -100,6 +102,11 @@ androidComponents {
     }
 }
 
+// LLD §9 / ADR-012: one Baseline Profile for both store flavours (identical code), merged into main.
+baselineProfile {
+    mergeIntoMain = true
+}
+
 // ADR-008 licence gate: generated at build time, fully offline. Strict mode fails the release build on any
 // licence outside the GPL-3.0-compatible allowlist.
 aboutLibraries {
@@ -138,6 +145,8 @@ dependencies {
     implementation(libs.androidx.datastore.preferences)
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.kotlinx.serialization.json)
+    implementation(libs.androidx.profileinstaller)
+    baselineProfile(project(":baselineprofile"))
 
     testImplementation(libs.junit)
     testImplementation(libs.truth)
