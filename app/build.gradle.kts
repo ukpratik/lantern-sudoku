@@ -2,6 +2,8 @@
 plugins {
     id("lantern.android.application")
     id("lantern.android.compose")
+    alias(libs.plugins.kotlin.serialization)
+    alias(libs.plugins.ksp)
     alias(libs.plugins.aboutlibraries.android)
 }
 
@@ -59,6 +61,43 @@ android {
         includeInApk = false
         includeInBundle = false
     }
+
+    // Robolectric tests (Room, Compose smoke tests) need the merged resources and assets (LLD §8).
+    testOptions.unitTests.isIncludeAndroidResources = true
+}
+
+// LLD §2.1: the Room schema JSON is exported and committed; every shipped version stays frozen in app/schemas.
+ksp {
+    arg("room.schemaLocation", "$projectDir/schemas")
+    arg("room.generateKotlin", "true")
+}
+
+// LLD §4.6: the committed bank (bank/v1/*.txt) is copied into the APK's assets at build time, never duplicated in git.
+abstract class CopyBankAssets : DefaultTask() {
+    @get:InputFiles
+    @get:PathSensitive(PathSensitivity.RELATIVE)
+    abstract val bankFiles: ConfigurableFileCollection
+
+    @get:OutputDirectory
+    abstract val outputDir: DirectoryProperty
+
+    @TaskAction
+    fun copy() {
+        val out = outputDir.get().asFile.resolve("bank/v1")
+        out.deleteRecursively()
+        out.mkdirs()
+        bankFiles.files.forEach { it.copyTo(out.resolve(it.name)) }
+    }
+}
+
+val copyBankAssets = tasks.register<CopyBankAssets>("copyBankAssets") {
+    bankFiles.from(rootProject.fileTree("bank/v1") { include("*.txt") })
+}
+
+androidComponents {
+    onVariants { variant ->
+        variant.sources.assets?.addGeneratedSourceDirectory(copyBankAssets, CopyBankAssets::outputDir)
+    }
 }
 
 // ADR-008 licence gate: generated at build time, fully offline. Strict mode fails the release build on any
@@ -90,4 +129,22 @@ dependencies {
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.activity.compose)
+    implementation(libs.androidx.lifecycle.runtime.compose)
+    implementation(libs.androidx.lifecycle.viewmodel.compose)
+    implementation(libs.androidx.navigation.compose)
+    implementation(libs.androidx.room.runtime)
+    implementation(libs.androidx.room.ktx)
+    ksp(libs.androidx.room.compiler)
+    implementation(libs.androidx.datastore.preferences)
+    implementation(libs.kotlinx.coroutines.android)
+    implementation(libs.kotlinx.serialization.json)
+
+    testImplementation(libs.junit)
+    testImplementation(libs.truth)
+    testImplementation(libs.robolectric)
+    testImplementation(libs.androidx.test.core)
+    testImplementation(libs.androidx.room.testing)
+    testImplementation(libs.kotlinx.coroutines.test)
+    testImplementation(libs.compose.ui.test.junit4)
+    debugImplementation(libs.compose.ui.test.manifest)
 }

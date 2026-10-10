@@ -1,0 +1,183 @@
+{
+  "formatVersion": 1,
+  "database": {
+    "version": 1,
+    "identityHash": "94c90c5faa71f6a08b1fe5f040718040",
+    "entities": [
+      {
+        "tableName": "games",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `puzzle_id` TEXT NOT NULL, `kind` INTEGER NOT NULL, `level` INTEGER NOT NULL, `daily_epoch_day` INTEGER, `status` INTEGER NOT NULL, `started_at` INTEGER NOT NULL, `started_epoch_day` INTEGER NOT NULL, `updated_at` INTEGER NOT NULL, `completed_at` INTEGER, `completed_epoch_day` INTEGER, `elapsed_ms` INTEGER NOT NULL, `hints1` INTEGER NOT NULL, `hints2` INTEGER NOT NULL, `hints3` INTEGER NOT NULL, `mistakes` INTEGER NOT NULL, `clean` INTEGER NOT NULL, `filled_count` INTEGER NOT NULL, `grid_summary` TEXT NOT NULL, `box_flags` INTEGER NOT NULL, `state_version` INTEGER, `state_blob` TEXT)",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "puzzleId",
+            "columnName": "puzzle_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "kind",
+            "columnName": "kind",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "level",
+            "columnName": "level",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "dailyEpochDay",
+            "columnName": "daily_epoch_day",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "status",
+            "columnName": "status",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "startedAt",
+            "columnName": "started_at",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "startedEpochDay",
+            "columnName": "started_epoch_day",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "updatedAt",
+            "columnName": "updated_at",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "completedAt",
+            "columnName": "completed_at",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "completedEpochDay",
+            "columnName": "completed_epoch_day",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "elapsedMs",
+            "columnName": "elapsed_ms",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "hints1",
+            "columnName": "hints1",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "hints2",
+            "columnName": "hints2",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "hints3",
+            "columnName": "hints3",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "mistakes",
+            "columnName": "mistakes",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "clean",
+            "columnName": "clean",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "filledCount",
+            "columnName": "filled_count",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "gridSummary",
+            "columnName": "grid_summary",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "boxFlags",
+            "columnName": "box_flags",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "stateVersion",
+            "columnName": "state_version",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "stateBlob",
+            "columnName": "state_blob",
+            "affinity": "TEXT"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_games_kind_level_status",
+            "unique": false,
+            "columnNames": [
+              "kind",
+              "level",
+              "status"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_games_kind_level_status` ON `${TABLE_NAME}` (`kind`, `level`, `status`)"
+          },
+          {
+            "name": "index_games_daily_epoch_day",
+            "unique": true,
+            "columnNames": [
+              "daily_epoch_day"
+            ],
+            "orders": [],
+            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_games_daily_epoch_day` ON `${TABLE_NAME}` (`daily_epoch_day`)"
+          },
+          {
+            "name": "index_games_puzzle_id",
+            "unique": false,
+            "columnNames": [
+              "puzzle_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_games_puzzle_id` ON `${TABLE_NAME}` (`puzzle_id`)"
+          }
+        ]
+      }
+    ],
+    "setupQueries": [
+      "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '94c90c5faa71f6a08b1fe5f040718040')"
+    ]
+  }
+}

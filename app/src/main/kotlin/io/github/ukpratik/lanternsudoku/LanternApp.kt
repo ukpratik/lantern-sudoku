@@ -6,6 +6,9 @@ import android.content.pm.ApplicationInfo
 import android.os.StrictMode
 
 class LanternApp : Application() {
+    lateinit var container: AppContainer
+        private set
+
     override fun onCreate() {
         super.onCreate()
         // NFR-012: no disk or network I/O on the main thread. Debug builds crash on a violation; release does nothing.
@@ -15,5 +18,6 @@ class LanternApp : Application() {
                 StrictMode.VmPolicy.Builder().detectLeakedClosableObjects().detectCleartextNetwork().penaltyLog().penaltyDeath().build(),
             )
         }
+        container = AppContainer(this)
     }
 }
