@@ -8,6 +8,7 @@ import io.github.ukpratik.lanternsudoku.engine.game.InputState
 import io.github.ukpratik.lanternsudoku.engine.game.Status
 import io.github.ukpratik.lanternsudoku.engine.model.Grid
 import io.github.ukpratik.lanternsudoku.engine.model.PuzzleId
+import java.time.LocalDate
 
 /**
  * Debug-build QA hooks (qa-handover "Debug hooks"; documented in 06-build/handover.md). The release source set has a
@@ -17,10 +18,28 @@ import io.github.ukpratik.lanternsudoku.engine.model.PuzzleId
  * adb shell am start -n io.github.ukpratik.lanternsudoku.debug/io.github.ukpratik.lanternsudoku.MainActivity --es dbg_load N-H-0123
  * adb shell am start -n io.github.ukpratik.lanternsudoku.debug/io.github.ukpratik.lanternsudoku.MainActivity --es dbg_load N-H-0000 --es dbg_board .84.1....2..58..4...
  * adb shell am start -n io.github.ukpratik.lanternsudoku.debug/io.github.ukpratik.lanternsudoku.MainActivity --ez dbg_near_solved true
+ * adb shell am start -n io.github.ukpratik.lanternsudoku.debug/io.github.ukpratik.lanternsudoku.MainActivity --es dbg_date 2026-10-15
+ * adb shell am start -n io.github.ukpratik.lanternsudoku.debug/io.github.ukpratik.lanternsudoku.MainActivity --es dbg_date clear
+ * adb shell am start -n io.github.ukpratik.lanternsudoku.debug/io.github.ukpratik.lanternsudoku.MainActivity --es dbg_date 2026-10-15 --ez dbg_daily true
  * ```
  */
 object DebugHooks {
     const val ENABLED = true
+
+    @Volatile
+    private var dateOverride: LocalDate? = null
+
+    /**
+     * `dbg_date <yyyy-mm-dd>` overrides "today" for the whole app (daily, started/completed dates, streak) until the
+     * process ends or `dbg_date clear`. Returns true if the intent carried the extra.
+     */
+    fun applyDate(intent: Intent?): Boolean {
+        val text = intent?.getStringExtra("dbg_date") ?: return false
+        dateOverride = if (text.isBlank() || text == "clear") null else runCatching { LocalDate.parse(text) }.getOrNull()
+        return true
+    }
+
+    fun todayOverride(): LocalDate? = dateOverride
 
     @Volatile
     private var nearSolvedPending = false
@@ -59,6 +78,7 @@ object DebugHooks {
         intent.getStringExtra("dbg_load")?.let { text ->
             return runCatching { DebugCommand.Load(PuzzleId.parse(text), intent.getStringExtra("dbg_board")) }.getOrNull()
         }
+        if (intent.getBooleanExtra("dbg_daily", false)) return DebugCommand.Daily
         if (intent.getBooleanExtra("dbg_near_solved", false)) return DebugCommand.NearSolved
         return null
     }

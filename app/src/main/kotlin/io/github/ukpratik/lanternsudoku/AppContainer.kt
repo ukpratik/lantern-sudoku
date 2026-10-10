@@ -8,6 +8,8 @@ import io.github.ukpratik.lanternsudoku.data.GameRepository
 import io.github.ukpratik.lanternsudoku.data.PuzzleSource
 import io.github.ukpratik.lanternsudoku.data.SaveQueue
 import io.github.ukpratik.lanternsudoku.data.SettingsRepository
+import io.github.ukpratik.lanternsudoku.data.Today
+import io.github.ukpratik.lanternsudoku.platform.DebugHooks
 import io.github.ukpratik.lanternsudoku.data.db.LanternDatabase
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
@@ -28,7 +30,10 @@ class AppContainer(context: Context) {
 
     val puzzleSource: PuzzleSource by lazy { PuzzleSource(appContext.assets::open, io) }
 
-    val gameRepository: GameRepository by lazy { GameRepository(database, puzzleSource, io) }
+    /** The local date, re-read on resume, tab switches and date/time-zone broadcasts; `dbg_date` in debug builds. */
+    val today: Today = Today(override = DebugHooks::todayOverride)
+
+    val gameRepository: GameRepository by lazy { GameRepository(database, puzzleSource, io, today = today) }
 
     val saveQueue: SaveQueue by lazy { SaveQueue(appScope, gameRepository, io) }
 

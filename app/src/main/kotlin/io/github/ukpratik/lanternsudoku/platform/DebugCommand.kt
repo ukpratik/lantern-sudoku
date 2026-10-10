@@ -16,4 +16,7 @@ sealed interface DebugCommand {
 
     /** `dbg:near-solved`: open the current game with all but one empty cell filled from the solution. */
     data object NearSolved : DebugCommand
+
+    /** `dbg_daily`: open (or resume) today's daily, as the Today row's Play does; combine with `dbg_date`. */
+    data object Daily : DebugCommand
 }

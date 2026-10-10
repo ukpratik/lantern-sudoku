@@ -26,7 +26,10 @@ import org.robolectric.annotation.Config
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35], qualifiers = "w411dp-h891dp-xxhdpi")
 class SmokeTest {
-    @get:Rule
+    @get:Rule(order = 0)
+    val teardown = AppTeardown()
+
+    @get:Rule(order = 1)
     val compose = createAndroidComposeRule<MainActivity>()
 
     private val isCell = SemanticsMatcher("is a board cell") {
@@ -38,7 +41,7 @@ class SmokeTest {
     @Test
     fun firstRun_startEasy_placeDigit_thenContinueFromHome() {
         compose.onNodeWithText("New game").assertExists()
-        compose.onNodeWithText("Today's puzzle").assertExists()
+        compose.onNode(hasContentDescription("Today's puzzle, ", substring = true)).assertExists() // one TalkBack label (D-018)
         compose.onNodeWithText("Start here").assertExists()
 
         compose.onNodeWithText("Easy").performClick()

@@ -1,8 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 package io.github.ukpratik.lanternsudoku.feature.game
 
+import android.database.sqlite.SQLiteException
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import io.github.ukpratik.lanternsudoku.data.CompletionSummary
+import io.github.ukpratik.lanternsudoku.data.ContinueSummary
 import io.github.ukpratik.lanternsudoku.data.GameRepository
 import io.github.ukpratik.lanternsudoku.data.LoadResult
 import io.github.ukpratik.lanternsudoku.data.SaveQueue
@@ -27,6 +30,7 @@ import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import java.time.LocalDate
 
 data class GameUiState(
     val loading: Boolean = true,
@@ -35,6 +39,12 @@ data class GameUiState(
     val settings: Settings = Settings(),
     val paused: Boolean = false,
     val saveFailed: Boolean = false,
+    /** The daily's own date (the bar reads "Daily · Thu 15 Oct"); null for New games. */
+    val dailyDate: LocalDate? = null,
+    /** The completion summary (US-018), read back once the completing write has landed. */
+    val completion: CompletionSummary? = null,
+    /** "New <level> game" after a daily, with a saved game at that level: the Continue-or-new choice (US-002). */
+    val continueOrNew: ContinueSummary? = null,
 )
 
 sealed interface GameEvent {
@@ -94,7 +104,7 @@ class GameViewModel(
             is LoadResult.Ok -> {
                 clock = PlayClock(now, r.elapsedMs)
                 _elapsed.value = r.elapsedMs
-                _state.update { it.copy(loading = false, game = r.state, level = r.level) }
+                _state.update { it.copy(loading = false, game = r.state, level = r.level, dailyDate = r.dailyDate) }
                 if (DebugHooks.ENABLED && DebugHooks.consumeNearSolved()) debugNearSolved()
                 if (DebugHooks.ENABLED) DebugHooks.consumeBoard()?.let(::debugBoard)
                 if (resumed) startClock()
@@ -173,13 +183,36 @@ class GameViewModel(
 
     fun dismissSaveFailed() = _state.update { it.copy(saveFailed = false) }
 
-    /** Completion's "New <level> game" (US-018 full summary in M4). */
+    /**
+     * Completion's "New <level> game" (US-018). After a regular game there's never a saved game at that level (it was
+     * this one); after a daily there may be, and then the player chooses Continue or Start new (US-002).
+     */
     fun newGameSameLevel() {
         viewModelScope.launch {
             saveQueue.flush() // the completion is written before the next game is picked
-            events.send(GameEvent.OpenGame(repository.startNew(_state.value.level)))
+            val level = _state.value.level
+            val saved = repository.inProgress(level)
+            if (saved != null) {
+                _state.update { it.copy(continueOrNew = saved) }
+            } else {
+                events.send(GameEvent.OpenGame(repository.startNew(level)))
+            }
         }
     }
+
+    fun onContinueSaved() {
+        val saved = _state.value.continueOrNew ?: return
+        _state.update { it.copy(continueOrNew = null) }
+        events.trySend(GameEvent.OpenGame(saved.gameId))
+    }
+
+    fun onStartNewInstead() {
+        val saved = _state.value.continueOrNew ?: return
+        _state.update { it.copy(continueOrNew = null) }
+        viewModelScope.launch { events.send(GameEvent.OpenGame(repository.startNew(saved.level, abandonExisting = true))) }
+    }
+
+    fun onDismissContinueOrNew() = _state.update { it.copy(continueOrNew = null) }
 
     /** Debug builds only (QA hook `dbg:near-solved`): fill all but one empty cell with the solution. */
     fun debugNearSolved() {
@@ -203,6 +236,22 @@ class GameViewModel(
     private fun complete(s: GameState) {
         stopClock()
         saveQueue.offer(SaveRequest.Complete(gameId, s, clock.elapsedMs()))
+        viewModelScope.launch {
+            saveQueue.flush()
+            // If the completing write failed (storage full), the summary still shows from memory, without the best-time
+            // comparison; the save-failed message has already told the player.
+            val read = try {
+                repository.completion(gameId)
+            } catch (e: SQLiteException) {
+                null
+            }
+            val c = read ?: s.counters.let { n ->
+                val ui = _state.value
+                CompletionSummary(gameId, ui.level, clock.elapsedMs(), n.hints1, n.hints2, n.hints3, n.mistakes, clean = n.hints3 == 0,
+                    previousBestMs = null, newBest = false, dailyDate = ui.dailyDate)
+            }
+            _state.update { it.copy(completion = c) }
+        }
     }
 
     private fun startClock() {

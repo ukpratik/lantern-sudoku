@@ -23,7 +23,6 @@
     <string name="resume">Resume</string>
     <string name="continue_card_description">Continue %1$s, %2$s, %3$d of 81 cells</string>
     <string name="today_title">Today\'s puzzle</string>
-    <string name="today_soon">Daily puzzles arrive in the next build</string>
     <string name="play">Play</string>
     <string name="new_game">New game</string>
     <string name="pick_a_level">Pick a level</string>
@@ -34,7 +33,7 @@
     <string name="tab_play">Play</string>
     <string name="tab_daily">Daily</string>
     <string name="tab_stats">Stats</string>
-    <string name="tab_coming_soon">This tab arrives in a later build.</string>
+    <string name="tab_daily_not_played">Daily, today\'s puzzle not played yet</string>
 
     <!-- Continue-or-new sheet (US-002, design level-picker-continue-or-new) -->
     <string name="sheet_title">You have a %1$s game going</string>
@@ -91,9 +90,8 @@
     <string name="show_them">Show them</string>
     <string name="keep_looking">Keep looking</string>
 
-    <!-- Completion (minimal in M2; the full summary is US-018 in M4) -->
+    <!-- Completion (US-018, design completion, completion-daily-share) -->
     <string name="completed_title">Nice work.</string>
-    <string name="completed_meta">%1$s · %2$s · %3$s</string>
     <string name="new_level_game">New %1$s game</string>
     <string name="back_to_play">Back to Play</string>
     <plurals name="mistakes_plural">
@@ -125,4 +123,116 @@
     <string name="settings_mistake_limit_summary">Never a game over: you can always keep playing</string>
     <string name="settings_limit_needs_show">Available while Show mistakes is on</string>
     <string name="settings_limit_off">Off</string>
+
+    <!-- Today's puzzle (US-014, D-018; design play-tab, daily-tab, state-daily-date-changed) -->
+    <string name="today_row_meta">%1$s · %2$s</string>
+    <string name="today_row_done">done · %1$s</string>
+    <string name="today_row_started">started · %1$s</string>
+    <string name="today_row_description">Today\'s puzzle, %1$s, %2$s. %3$s</string>
+    <string name="today_row_done_description">Today\'s puzzle, %1$s, %2$s, done in %3$s</string>
+    <string name="share">Share</string>
+    <string name="share_result">Share result</string>
+    <string name="share_result_description">Share result. Opens the share menu.</string>
+    <string name="share_sheet_title">Share your result</string>
+    <string name="continue_daily_eyebrow">CONTINUE · DAILY</string>
+    <string name="continue_daily_meta">%1$s · %2$s · %3$d of 81 cells</string>
+    <string name="continue_daily_description">Continue Daily, %1$s, %2$s, %3$s, %4$d of 81 cells</string>
+    <string name="game_title_daily">Daily · %1$s</string>
+
+    <!-- Daily tab (US-014, US-015; design daily-tab) -->
+    <string name="daily_title">Daily</string>
+    <string name="daily_today_eyebrow">TODAY\'S PUZZLE</string>
+    <string name="daily_card_title">%1$s · %2$s</string>
+    <string name="daily_card_meta">Same puzzle for everyone today</string>
+    <string name="daily_card_meta_typical">Same puzzle for everyone today · about %1$s</string>
+    <plurals name="minutes_short">
+        <item quantity="one">%d min</item>
+        <item quantity="other">%d min</item>
+    </plurals>
+    <string name="daily_play">Play today\'s puzzle</string>
+    <string name="daily_resume">Resume today\'s puzzle</string>
+    <string name="daily_done">Done · %1$s</string>
+    <string name="daily_card_description">Today\'s puzzle, %1$s, %2$s. %3$s</string>
+    <string name="streak_line" tools:ignore="PluralsCandidate">%1$d-day streak · best %2$d · %3$s</string>
+    <string name="streak_description" tools:ignore="PluralsCandidate">%1$d-day streak. Best %2$d. %3$s.</string>
+    <plurals name="days_played">
+        <item quantity="one">%d day played</item>
+        <item quantity="other">%d days played</item>
+    </plurals>
+    <string name="last_7_days">Last 7 days</string>
+    <string name="strip_day">%1$s, %2$s, %3$s.</string>
+    <string name="strip_today">Today, %1$s, %2$s, %3$s.</string>
+    <string name="day_done">done</string>
+    <string name="day_started">started</string>
+    <string name="day_not_played">not played</string>
+
+    <!-- Stats tab (US-019, US-015; design stats, stats-empty) -->
+    <string name="stats_title">Stats</string>
+    <string name="stats_all">All</string>
+    <string name="stats_level_filter">Level</string>
+    <string name="stats_daily_eyebrow">DAILY</string>
+    <string name="stats_streak">streak</string>
+    <string name="stats_best">best</string>
+    <string name="stats_days_played">days played</string>
+    <string name="stat_started">Started</string>
+    <string name="stat_completed">Completed</string>
+    <string name="stat_rate">Completion</string>
+    <string name="stat_abandoned">Abandoned</string>
+    <string name="stat_clean">Clean solves</string>
+    <string name="stat_average">Avg time</string>
+    <string name="stat_percent">%1$d%%</string>
+    <string name="stat_none">–</string>
+    <string name="stat_tile_description">%1$s, %2$s</string>
+    <string name="stats_by_level">By level</string>
+    <string name="stats_by_level_note">Best = clean solves only</string>
+    <string name="stats_col_level">Level</string>
+    <string name="stats_col_done">Done</string>
+    <string name="stats_col_best">Best</string>
+    <string name="stats_col_avg">Avg</string>
+    <string name="stats_row_description" tools:ignore="PluralsCandidate">%1$s: %2$d completed, best %3$s, average %4$s.</string>
+    <string name="stats_empty_title">Your numbers will glow here</string>
+    <string name="stats_empty_body">Finish a puzzle and you\'ll see your times, clean solves and daily streak. No rush.</string>
+
+    <!-- Completion summary (US-018) -->
+    <string name="close">Close</string>
+    <string name="home">Home</string>
+    <string name="completion_eyebrow">%1$s · solved</string>
+    <string name="completion_daily_eyebrow">Daily · %1$s · %2$s</string>
+    <string name="tile_time">Time</string>
+    <string name="tile_new_best">New best for %1$s</string>
+    <string name="tile_best">best %1$s</string>
+    <plurals name="tile_hints">
+        <item quantity="one">Hint</item>
+        <item quantity="other">Hints</item>
+    </plurals>
+    <plurals name="tile_mistakes">
+        <item quantity="one">Mistake</item>
+        <item quantity="other">Mistakes</item>
+    </plurals>
+    <string name="tile_clean">Clean solve</string>
+    <string name="tile_clean_yes">no digits revealed</string>
+    <string name="tile_clean_no">a hint placed a digit</string>
+    <string name="hints_none">none taken</string>
+    <string name="hints_one_to">went to %1$s</string>
+    <string name="hints_both_to">both to %1$s</string>
+    <string name="hints_all_to">all to %1$s</string>
+    <string name="hints_stage_count" tools:ignore="PluralsCandidate">%1$d %2$s</string>
+    <plurals name="hints_spoken">
+        <item quantity="one">1 hint</item>
+        <item quantity="other">%d hints</item>
+    </plurals>
+    <string name="no_hints">no hints</string>
+    <string name="completion_announcement">Puzzle solved. Nice work. Time %1$s. %2$s. %3$s.</string>
+    <plurals name="spoken_hours">
+        <item quantity="one">%d hour</item>
+        <item quantity="other">%d hours</item>
+    </plurals>
+    <plurals name="spoken_minutes">
+        <item quantity="one">%d minute</item>
+        <item quantity="other">%d minutes</item>
+    </plurals>
+    <plurals name="spoken_seconds">
+        <item quantity="one">%d second</item>
+        <item quantity="other">%d seconds</item>
+    </plurals>
 </resources>

@@ -3,6 +3,7 @@ package io.github.ukpratik.lanternsudoku.platform
 
 import android.content.Intent
 import io.github.ukpratik.lanternsudoku.engine.game.GameState
+import java.time.LocalDate
 
 /** Release twin of the debug-build QA hooks: does nothing, so no hook ships. */
 object DebugHooks {
@@ -12,6 +13,12 @@ object DebugHooks {
     fun parse(intent: Intent?): DebugCommand? = null
 
     fun nearSolved(s: GameState): GameState = s
+
+    @Suppress("UNUSED_PARAMETER", "FunctionOnlyReturningConstant")
+    fun applyDate(intent: Intent?): Boolean = false
+
+    @Suppress("FunctionOnlyReturningConstant")
+    fun todayOverride(): LocalDate? = null
 
     fun requestNearSolved() = Unit
 

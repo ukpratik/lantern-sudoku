@@ -137,6 +137,9 @@ class GameViewModelTest {
         assertThat(row.status).isEqualTo(GameEntity.COMPLETED)
         assertThat(row.elapsedMs).isEqualTo(5_000) // TC-032: stops on the completing move
         assertThat(row.stateBlob).isNull()
+        // The completion summary (US-018) is read back from that row.
+        val summary = withTimeout(5_000) { m.state.first { it.completion != null } }.completion!!
+        assertThat(summary.elapsedMs).isEqualTo(5_000)
     }
 
     @Test

@@ -55,7 +55,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
@@ -76,6 +75,11 @@ import io.github.ukpratik.lanternsudoku.engine.game.Status
 import io.github.ukpratik.lanternsudoku.engine.hint.HintPlan
 import io.github.ukpratik.lanternsudoku.engine.hint.HintView
 import io.github.ukpratik.lanternsudoku.engine.model.Level
+import io.github.ukpratik.lanternsudoku.feature.home.ContinueOrNewSheet
+import io.github.ukpratik.lanternsudoku.feature.share.ShareText
+import io.github.ukpratik.lanternsudoku.ui.components.SHORT_DATE
+import androidx.compose.ui.platform.LocalContext
+import java.time.LocalDate
 import io.github.ukpratik.lanternsudoku.engine.model.Masks
 import io.github.ukpratik.lanternsudoku.platform.DebugHooks
 import io.github.ukpratik.lanternsudoku.platform.Haptics
@@ -132,10 +136,24 @@ fun GameScreen(vm: GameViewModel, onLeave: () -> Unit, onOpenGame: (Long) -> Uni
         } else {
             BoxWithConstraints(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing), contentAlignment = Alignment.TopCenter) {
                 val geo = BoardGeometry.compute(maxWidth.value, maxHeight.value)
+                val completion = ui.completion
+                if (game.status == Status.COMPLETED && completion != null) {
+                    val context = LocalContext.current
+                    CompletionContent(
+                        gridSummary = GameState.gridSummary(game),
+                        summary = completion,
+                        onClose = onLeave,
+                        onNewGame = vm::newGameSameLevel,
+                        onShare = { ShareText.share(context, it) },
+                        modifier = Modifier.width(geo.column.dp),
+                    )
+                    return@BoxWithConstraints
+                }
                 GameContent(
                     vm = vm,
                     game = game,
                     level = ui.level,
+                    dailyDate = ui.dailyDate,
                     settings = ui.settings,
                     paused = ui.paused,
                     saveFailed = ui.saveFailed,
@@ -148,6 +166,7 @@ fun GameScreen(vm: GameViewModel, onLeave: () -> Unit, onOpenGame: (Long) -> Uni
             }
         }
     }
+    ui.continueOrNew?.let { ContinueOrNewSheet(it, vm::onContinueSaved, vm::onStartNewInstead, vm::onDismissContinueOrNew) }
     if (confirmRestart) {
         AlertDialog(
             onDismissRequest = { confirmRestart = false },
@@ -170,6 +189,7 @@ private fun GameContent(
     vm: GameViewModel,
     game: GameState,
     level: Level,
+    dailyDate: LocalDate?,
     settings: Settings,
     paused: Boolean,
     saveFailed: Boolean,
@@ -181,6 +201,8 @@ private fun GameContent(
 ) {
     val k = LocalLanternColors.current
     val levelName = stringResource(level.label)
+    // A daily keeps its own date in the bar, even past midnight (design state-daily-date-changed).
+    val title = dailyDate?.let { stringResource(R.string.game_title_daily, it.format(SHORT_DATE)) } ?: levelName
     val resources = LocalResources.current
     val status = statusText(game) ?: HintCopy.of(resources, game)?.status
     // The space under the board: whatever is left, but never less than the controls need (then the column scrolls).
@@ -191,7 +213,7 @@ private fun GameContent(
         Modifier.width(geo.column.dp).fillMaxSize().then(if (geo.scrolls) Modifier.verticalScroll(rememberScrollState()) else Modifier),
     ) {
         GameBar(
-            levelName = levelName,
+            levelName = title,
             elapsedMs = vm.elapsed.collectAsStateWithLifecycle().value,
             showTimer = settings.showTimer,
             subtitle = if (geo.compact) status else null,
@@ -257,18 +279,8 @@ private fun GameContent(
                         primary = stringResource(R.string.show_them) to { vm.onAction(Action.ShowThem) },
                         secondary = stringResource(R.string.keep_looking) to { vm.onAction(Action.KeepLooking) },
                     )
-                    PanelKind.COMPLETED -> {
-                        val mistakes = game.counters.mistakes
-                        val mistakesText = if (mistakes == 0) stringResource(R.string.no_mistakes) else pluralStringResource(R.plurals.mistakes_plural, mistakes, mistakes)
-                        GamePanel(
-                            icon = R.drawable.ic_check,
-                            title = stringResource(R.string.completed_title),
-                            body = stringResource(R.string.completed_meta, levelName, formatElapsed(vm.elapsed.collectAsStateWithLifecycle().value), mistakesText),
-                            finePrint = null,
-                            primary = stringResource(R.string.new_level_game, levelName) to vm::newGameSameLevel,
-                            secondary = stringResource(R.string.back_to_play) to onLeave,
-                        )
-                    }
+                    // The summary replaces the whole screen once the completing write is read back (a few ms).
+                    PanelKind.COMPLETED -> Box(Modifier.fillMaxSize())
                 }
             }
         }
