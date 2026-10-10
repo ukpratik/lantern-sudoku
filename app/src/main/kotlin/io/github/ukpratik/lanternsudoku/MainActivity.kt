@@ -49,7 +49,10 @@ class MainActivity : ComponentActivity() {
         val container = (application as LanternApp).container
         lifecycleScope.launch {
             val id = when (command) {
-                is DebugCommand.Load -> container.gameRepository.startWith(command.id, abandonExisting = true)
+                is DebugCommand.Load -> {
+                    command.board?.let(DebugHooks::requestBoard)
+                    container.gameRepository.startWith(command.id, abandonExisting = true)
+                }
                 DebugCommand.NearSolved -> {
                     val card = container.gameRepository.continueCard().first() ?: return@launch
                     DebugHooks.requestNearSolved()

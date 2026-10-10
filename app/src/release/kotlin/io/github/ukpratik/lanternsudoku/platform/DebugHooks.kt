@@ -16,4 +16,12 @@ object DebugHooks {
     fun requestNearSolved() = Unit
 
     fun consumeNearSolved(): Boolean = false
+
+    @Suppress("UNUSED_PARAMETER")
+    fun requestBoard(board: String) = Unit
+
+    fun consumeBoard(): String? = null
+
+    @Suppress("UNUSED_PARAMETER")
+    fun withBoard(s: GameState, board: String): GameState = s
 }

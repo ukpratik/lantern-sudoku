@@ -8,8 +8,11 @@ import io.github.ukpratik.lanternsudoku.engine.model.PuzzleId
  * The release build's [DebugHooks] never returns one.
  */
 sealed interface DebugCommand {
-    /** `dbg:load <puzzleId>`: start that New-game puzzle (abandoning a saved game at its level). */
-    data class Load(val id: PuzzleId) : DebugCommand
+    /**
+     * `dbg:load <puzzleId>`: start that New-game puzzle (abandoning a saved game at its level). With `dbg_board`
+     * (81 characters, givens plus entries), the entries are filled in as if played: a fixed hint position for QA.
+     */
+    data class Load(val id: PuzzleId, val board: String? = null) : DebugCommand
 
     /** `dbg:near-solved`: open the current game with all but one empty cell filled from the solution. */
     data object NearSolved : DebugCommand

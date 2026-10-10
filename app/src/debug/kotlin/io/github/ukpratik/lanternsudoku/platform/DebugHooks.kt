@@ -6,6 +6,7 @@ import io.github.ukpratik.lanternsudoku.engine.game.CellCode
 import io.github.ukpratik.lanternsudoku.engine.game.GameState
 import io.github.ukpratik.lanternsudoku.engine.game.InputState
 import io.github.ukpratik.lanternsudoku.engine.game.Status
+import io.github.ukpratik.lanternsudoku.engine.model.Grid
 import io.github.ukpratik.lanternsudoku.engine.model.PuzzleId
 
 /**
@@ -14,6 +15,7 @@ import io.github.ukpratik.lanternsudoku.engine.model.PuzzleId
  *
  * ```
  * adb shell am start -n io.github.ukpratik.lanternsudoku.debug/io.github.ukpratik.lanternsudoku.MainActivity --es dbg_load N-H-0123
+ * adb shell am start -n io.github.ukpratik.lanternsudoku.debug/io.github.ukpratik.lanternsudoku.MainActivity --es dbg_load N-H-0000 --es dbg_board .84.1....2..58..4...
  * adb shell am start -n io.github.ukpratik.lanternsudoku.debug/io.github.ukpratik.lanternsudoku.MainActivity --ez dbg_near_solved true
  * ```
  */
@@ -30,10 +32,32 @@ object DebugHooks {
 
     fun consumeNearSolved(): Boolean = nearSolvedPending.also { nearSolvedPending = false }
 
+    @Volatile
+    private var boardPending: String? = null
+
+    /** Asks the next Game screen that loads to fill in the entries of [board] (`dbg_board`, with `dbg_load`). */
+    fun requestBoard(board: String) {
+        boardPending = board
+    }
+
+    fun consumeBoard(): String? = boardPending.also { boardPending = null }
+
+    /**
+     * Fills in the non-given digits of [board] (81 characters, `.` for empty) as entries, history cleared. Digits that
+     * contradict a given are ignored; wrong digits stay, so error-first hints can be staged too.
+     */
+    fun withBoard(s: GameState, board: String): GameState {
+        val g = runCatching { Grid.parse(board) }.getOrNull() ?: return s
+        val cells = s.codes()
+        var seq = s.seq
+        for (i in 0 until 81) if (!s.isGiven(i) && g[i] != 0) cells[i] = CellCode.of(value = g[i], seq = ++seq)
+        return s.copy(cells = cells, seq = seq, input = InputState(), undo = emptyList(), redo = emptyList(), status = Status.PLAYING)
+    }
+
     fun parse(intent: Intent?): DebugCommand? {
         intent ?: return null
         intent.getStringExtra("dbg_load")?.let { text ->
-            return runCatching { DebugCommand.Load(PuzzleId.parse(text)) }.getOrNull()
+            return runCatching { DebugCommand.Load(PuzzleId.parse(text), intent.getStringExtra("dbg_board")) }.getOrNull()
         }
         if (intent.getBooleanExtra("dbg_near_solved", false)) return DebugCommand.NearSolved
         return null
