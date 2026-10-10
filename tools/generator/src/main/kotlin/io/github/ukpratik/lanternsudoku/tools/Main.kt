@@ -3,7 +3,7 @@ package io.github.ukpratik.lanternsudoku.tools
 
 import kotlin.system.exitProcess
 
-/** Entry point: `lantern-generator generate|validate|report [args]`. Real implementations land in M1 (ADR-004). */
+/** Entry point: `lantern-generator generate|validate|report|freeze [args]` (ADR-004). */
 fun main(args: Array<String>) {
     exitProcess(run(args.toList(), ::println))
 }
@@ -12,31 +12,31 @@ fun main(args: Array<String>) {
 fun run(args: List<String>, out: (String) -> Unit): Int {
     val command = args.firstOrNull()
     val rest = args.drop(1)
-    return when (command) {
-        "generate" -> notYet("generate", out)
-        "validate" -> validate(rest, out)
-        "report" -> notYet("report", out)
-        else -> {
-            out(USAGE)
-            if (command == null || command == "help" || command == "--help") 0 else 2
+    return try {
+        when (command) {
+            "generate" -> GenerateCmd.run(rest, out)
+            "validate" -> ValidateCmd.run(rest, out)
+            "report" -> ReportCmd.run(rest, out)
+            "freeze" -> FreezeCmd.run(rest, out)
+            else -> {
+                out(USAGE)
+                if (command == null || command == "help" || command == "--help") 0 else 2
+            }
         }
+    } catch (e: IllegalArgumentException) {
+        out("$command: ${e.message}")
+        2
     }
-}
-
-// Placeholder that passes: there is no bank to check until M1, and the CI step must already be wired.
-private fun validate(args: List<String>, out: (String) -> Unit): Int {
-    val dir = args.firstOrNull() ?: "bank"
-    out("validate: no bank yet in '$dir' (the validator arrives in M1); nothing to check. OK")
-    return 0
-}
-
-private fun notYet(name: String, out: (String) -> Unit): Int {
-    out("$name: not implemented yet (M1)")
-    return 1
 }
 
 internal const val USAGE = """Usage: lantern-generator <command> [args]
 Commands:
-  generate   generate the puzzle bank (M1)
-  validate   validate the committed bank: format, uniqueness, grades (M1)
-  report     print the grade distribution and a hand-check sample (M1)"""
+  generate [dir] [--newgame N] [--only FILE] [--count FILE=N] [--threads T]
+             append generated records up to each file's target (New game 2,000; dailies 1,040/1,040/1,040/520)
+  validate [dir]   validate the committed bank: format, two independent solution counters, logical solve within
+             the level, re-grade, givens windows, duplicates, manifest and frozen-prefix SHA-256s, compressed size
+  report [dir] [--out FILE] [--sample N]
+             print the grade distribution and hint-search statistics; write the hand-check sample (N per level)
+  freeze <dir> <release>
+             record a frozen prefix (count + SHA-256) for every file that grew since its last freeze
+The bank directory defaults to bank/v1."""
