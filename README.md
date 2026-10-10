@@ -4,7 +4,7 @@
 
 Lantern Sudoku has no ads, no account, no tracking and **no network permission**: CI fails the build if any permission appears in a release APK. It is free software under GPL-3.0-or-later.
 
-> **Status:** in development (M0 foundation and M1 engine + puzzle bank are done). Product, design and architecture docs: [`product/README.md`](product/README.md). Build plan: [`product/06-build/build-plan.md`](product/06-build/build-plan.md).
+> **Status:** in development (M0 foundation, M1 engine + puzzle bank and M2 playable board are done). Product, design and architecture docs: [`product/README.md`](product/README.md). Build plan: [`product/06-build/build-plan.md`](product/06-build/build-plan.md).
 
 ## Build, run, test
 
@@ -13,12 +13,14 @@ Requirements: JDK 17 or newer (CI uses 21), Android SDK with platform 37. Point 
 ```bash
 ./gradlew assemblePlayDebug          # Google Play flavour (installs as io.github.ukpratik.lanternsudoku.debug)
 ./gradlew installFdroidDebug         # F-Droid flavour onto a connected device
-./gradlew test                       # unit tests (engine, generator)
+./gradlew test                       # unit tests (engine, generator, app on Robolectric)
 ./gradlew :tools:generator:validateBank                  # validate every record of bank/v1 (also part of `check`)
 ./gradlew :tools:generator:run --args="report"           # grade distribution, hint replay, hand-check sample
 scripts/install-hooks.sh                                 # optional pre-push hook: engine + generator tests, bank validator
 scripts/ci.sh                        # every CI gate, exactly as GitHub Actions runs it
 ```
+
+Debug builds have QA hooks (never in release): `adb shell am start -n io.github.ukpratik.lanternsudoku.debug/io.github.ukpratik.lanternsudoku.MainActivity --es dbg_load N-H-0123` starts that puzzle, and `--ez dbg_near_solved true` opens the current game with one empty cell left (also in the game's ⋮ menu).
 
 `scripts/ci.sh` runs: unit tests, the bank validator, Android Lint for both flavours (warnings are errors), R8 release builds of both flavours with the AboutLibraries licence gate, the permission gate (empty allowlist) and the size gate (Play download ≤ 10 MB).
 
