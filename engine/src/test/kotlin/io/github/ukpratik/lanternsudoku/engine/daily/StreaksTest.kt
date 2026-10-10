@@ -86,4 +86,48 @@ class StreaksTest {
         // Flying west across the date line can repeat a local date: the set ignores the repeat.
         assertThat(Streaks.current(setOf(after, after), after)).isEqualTo(1)
     }
+
+    @Test
+    fun clockMovedBackCountsFromTheNewToday() {
+        // TC-134 maths: days D-2..D done, then the clock is set back to D-1. Today (D-1) is done, so the streak runs
+        // back from it; the "future" day D is simply not part of it. Moving the clock forward again restores 3.
+        val days = setOf(d - 2, d - 1, d)
+        assertThat(Streaks.current(days, d - 1)).isEqualTo(2)
+        assertThat(Streaks.current(days, d)).isEqualTo(3)
+        assertThat(Streaks.best(days)).isEqualTo(3)
+        // Set back further, to before anything was played: 0, never negative, never "broken".
+        assertThat(Streaks.current(days, d - 10)).isEqualTo(0)
+    }
+
+    @Test
+    fun pastDailiesNeverCountEvenWhenTheyFillAGap() {
+        // TC-140: D-2 and D on the day; D-1's daily played later (started on D) doesn't bridge the gap.
+        val games = listOf(daily(d - 2), daily(d - 1, started = d), daily(d))
+        assertThat(Streaks.current(Streaks.streakDays(games), d)).isEqualTo(1)
+        assertThat(Streaks.best(Streaks.streakDays(games))).isEqualTo(1)
+        assertThat(Streaks.daysPlayed(games)).isEqualTo(3)
+    }
+
+    @Test
+    fun aDailyStartedBeforeItsOwnDateDoesNotCount() {
+        // Clock moved back then forward: started on D-1 (the device said so), daily date D. Not "on its own date".
+        val g = daily(d, started = d - 1, completed = d)
+        assertThat(g.countsForStreak).isFalse()
+        assertThat(g.playedDay).isEqualTo(d)
+    }
+
+    @Test
+    fun timeZoneShiftAcrossTheDateLineCanSkipADate() {
+        // Kolkata → Pago Pago repeats a date; Pago Pago → Kiritimati can skip one. A skipped local date with no daily
+        // ends the streak like any other gap (no anti-cheat, US-014): the rule is purely about local dates.
+        assertThat(Streaks.current(setOf(d - 2, d), d)).isEqualTo(1)
+    }
+
+    @Test
+    fun newGamesCountForDaysPlayedOnTheirCompletionDate() {
+        // A New game started on D and finished after midnight counts on D+1 (PRD v1.3 §5).
+        val g = CompletedGame(null, d, d + 1)
+        assertThat(g.playedDay).isEqualTo(d + 1)
+        assertThat(Streaks.daysPlayed(listOf(g, daily(d)))).isEqualTo(2)
+    }
 }

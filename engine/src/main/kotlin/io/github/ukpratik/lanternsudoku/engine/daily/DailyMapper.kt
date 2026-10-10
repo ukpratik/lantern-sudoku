@@ -32,10 +32,10 @@ object Rotation {
  */
 object DailyMapper {
     /**
-     * A fixed Monday. **Provisional:** M4 sets it once to the Monday of the 1.0 release week (ADR-005) and the golden
-     * table is regenerated then; after 1.0 it never changes again.
+     * A fixed Monday, final (D-033): 2026-10-12. Guarded by the golden table (`golden-dailies.csv`, TC-127); it never
+     * changes after 1.0 (R-010).
      */
-    val EPOCH: LocalDate = LocalDate.of(2027, 1, 4)
+    val EPOCH: LocalDate = LocalDate.of(2026, 10, 12)
 
     const val PERIOD_WEEKS = 520
 

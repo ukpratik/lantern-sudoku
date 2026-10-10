@@ -25,8 +25,18 @@ class DailyMapperTest {
     }
 
     @Test
-    fun epochIsAMonday() {
+    fun epochIsTheFinalMonday() {
+        // D-033: fixed at 2026-10-12. Changing it would change every past and future daily (R-010).
+        assertThat(DailyMapper.EPOCH).isEqualTo(LocalDate.of(2026, 10, 12))
         assertThat(DailyMapper.EPOCH.dayOfWeek).isEqualTo(DayOfWeek.MONDAY)
+    }
+
+    @Test
+    fun theDesignsThursdayIsMedium() {
+        // completion-daily-share: "Daily 15 Oct 2026 · Medium" (Thursday 15 October 2026).
+        val ref = DailyMapper.forDate(LocalDate.of(2026, 10, 15))
+        assertThat(ref.level).isEqualTo(Level.MEDIUM)
+        assertThat(ref.id.toString()).isEqualTo("D-M-0001")
     }
 
     @Test
