@@ -13,6 +13,8 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.semantics.testTag
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -57,6 +59,7 @@ fun GamePanel(
     primary: Pair<String, () -> Unit>,
     secondary: Pair<String, () -> Unit>,
     modifier: Modifier = Modifier,
+    compact: Boolean = false,
 ) {
     val scheme = MaterialTheme.colorScheme
     Surface(
@@ -67,14 +70,30 @@ fun GamePanel(
         Column(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 16.dp), verticalArrangement = Arrangement.SpaceBetween) {
             val scroll = rememberScrollState()
             Column(Modifier.weight(1f, fill = false).scrollCue(scroll).verticalScroll(scroll).semantics { testTag = "panel-text" }) {
-                Box(Modifier.size(48.dp).clip(CircleShape).background(scheme.secondaryContainer), contentAlignment = Alignment.Center) {
-                    Icon(painterResource(icon), contentDescription = null, tint = scheme.primary)
+                val disc: @Composable () -> Unit = {
+                    Box(Modifier.size(if (compact) 40.dp else 48.dp).clip(CircleShape).background(scheme.secondaryContainer),
+                        contentAlignment = Alignment.Center) {
+                        Icon(painterResource(icon), contentDescription = null, tint = scheme.primary)
+                    }
                 }
-                Spacer(Modifier.height(12.dp))
-                Text(title, style = MaterialTheme.typography.titleLarge, modifier = Modifier.focusOnAppear().semantics {
-                    heading()
-                    liveRegion = LiveRegionMode.Polite
-                })
+                val heading: @Composable (Modifier) -> Unit = { m ->
+                    Text(title, style = MaterialTheme.typography.titleLarge, modifier = m.focusOnAppear().semantics {
+                        heading()
+                        liveRegion = LiveRegionMode.Polite
+                    })
+                }
+                if (compact) {
+                    // Short screens: the icon disc sits beside the title, leaving its 60 dp to the text (ISS-002, D-037).
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        disc()
+                        Spacer(Modifier.width(12.dp))
+                        heading(Modifier.weight(1f))
+                    }
+                } else {
+                    disc()
+                    Spacer(Modifier.height(12.dp))
+                    heading(Modifier)
+                }
                 if (body != null) {
                     Spacer(Modifier.height(6.dp))
                     Text(body, style = MaterialTheme.typography.bodyLarge)
@@ -103,7 +122,7 @@ fun Modifier.scrollCue(state: ScrollState): Modifier {
     return drawWithContent {
         drawContent()
         if (state.maxValue == 0) return@drawWithContent
-        val edge = minOf(28.dp.toPx(), size.height / 3)
+        val edge = minOf(16.dp.toPx(), size.height / 4)
         if (state.canScrollForward) {
             drawRect(Brush.verticalGradient(listOf(fade.copy(alpha = 0f), fade), startY = size.height - edge, endY = size.height),
                 topLeft = Offset(0f, size.height - edge), size = Size(size.width, edge))

@@ -90,7 +90,7 @@ fun HintPanel(game: GameState, onAction: (Action) -> Unit, modifier: Modifier = 
         color = scheme.surfaceContainer, contentColor = scheme.onSurface,
         shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
     ) {
-        Column(Modifier.fillMaxWidth().padding(start = 20.dp, end = 20.dp, top = 6.dp), verticalArrangement = Arrangement.SpaceBetween) {
+        Column(Modifier.fillMaxWidth().padding(start = 20.dp, end = 20.dp, top = 2.dp), verticalArrangement = Arrangement.SpaceBetween) {
             Column(Modifier.weight(1f, fill = false)) {
                 if (h.plan is HintPlan.Fallback) {
                     Row(Modifier.heightIn(min = 44.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -110,7 +110,6 @@ fun HintPanel(game: GameState, onAction: (Action) -> Unit, modifier: Modifier = 
                 ) { (_, step, t) ->
                     val scroll = rememberScrollState()
                     Column(Modifier.fillMaxWidth().scrollCue(scroll).verticalScroll(scroll).semantics { testTag = "hint-text" }) {
-                        Spacer(Modifier.height(4.dp))
                         FlowRow(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalArrangement = Arrangement.Center) {
                             Text(
                                 t.title,
@@ -166,7 +165,7 @@ private fun HintButtons(large: Boolean, secondary: @Composable (Modifier) -> Uni
             secondary(Modifier)
             primary(Modifier)
         },
-        modifier = Modifier.fillMaxWidth().padding(top = 10.dp, bottom = 8.dp),
+        modifier = Modifier.fillMaxWidth().padding(top = 6.dp, bottom = 6.dp),
     ) { (sec, pri), constraints ->
         val width = constraints.maxWidth
         val gap = (if (large) 8.dp else 10.dp).roundToPx()

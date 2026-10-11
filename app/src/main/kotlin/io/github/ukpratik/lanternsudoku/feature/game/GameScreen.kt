@@ -339,6 +339,7 @@ private fun GameContent(
                         primary = stringResource(R.string.keep_playing) to { vm.onAction(Action.KeepPlaying) },
                         secondary = stringResource(R.string.restart_puzzle) to { vm.restart() },
                         modifier = slotMin,
+                        compact = geo.compact,
                     )
                     PanelKind.ALMOST -> GamePanel(
                         icon = R.drawable.ic_lightbulb,
@@ -348,6 +349,7 @@ private fun GameContent(
                         primary = stringResource(R.string.show_them) to { vm.onAction(Action.ShowThem) },
                         secondary = stringResource(R.string.keep_looking) to { vm.onAction(Action.KeepLooking) },
                         modifier = slotMin,
+                        compact = geo.compact,
                     )
                     // The summary replaces the whole screen once the completing write is read back (a few ms).
                     PanelKind.COMPLETED -> Box(Modifier.fillMaxWidth().height(bottom.dp))
