@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 package io.github.ukpratik.lanternsudoku.engine.game
 
-/** Player intents (LLD §4.7). Fill notes arrives with M6 (US-009). */
+/** Player intents (LLD §4.7). */
 sealed interface Action {
     data class TapCell(val cell: Int) : Action
     data class TapDigit(val digit: Int) : Action
@@ -15,6 +15,12 @@ sealed interface Action {
     data object KeepLooking : Action
     data object KeepPlaying : Action
     data object Restart : Action
+
+    /**
+     * Fill notes (US-009): every empty cell's notes become the digits no given or entry in its row, column or box already
+     * shows. Entries are untouched; one undo step. The screen asks first when notes already exist.
+     */
+    data object FillNotes : Action
 
     // Teaching hints (US-012). The panel's stage changes are actions so the counters live in the reducer.
     /** Tap Hint: error first, else the simplest step, else the fallback (which places its digit at once). */

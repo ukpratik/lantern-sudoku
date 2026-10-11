@@ -68,6 +68,7 @@ object GameReducer {
         Redo -> redo(s)
         Back -> back(s)
         OpenHint -> openHint(s, rules)
+        Action.FillNotes -> fillNotes(s)
         // Panel actions outside their panel do nothing.
         ShowThem, KeepLooking, KeepPlaying, Restart, HintNext, is HintStage, is HintStep, CloseHint -> same(s)
     }
@@ -328,6 +329,24 @@ object GameReducer {
         val cells = s.codes()
         cells[i] = CellCode.withNotes(cells[i], CellCode.notes(cells[i]) xor Masks.bit(d))
         return Transition(commit(s, cells), listOf(Effect.Persist, Effect.Haptic(HapticKind.TICK)))
+    }
+
+    /**
+     * US-009: every empty cell gets the candidates consistent with the digits on the board (givens and entries, right or
+     * wrong: the player's board, not the solution). Replaces the cell's notes; entries and givens are untouched. One
+     * undo step; nothing changes (and nothing is recorded) when the notes already are exactly that.
+     */
+    private fun fillNotes(s: GameState): Transition {
+        val cells = s.codes()
+        for (i in 0 until Grid.CELLS) {
+            if (s.value(i) != 0) continue
+            var seen = 0
+            for (p in Houses.PEERS[i]) s.value(p).let { if (it != 0) seen = seen or Masks.bit(it) }
+            cells[i] = CellCode.withNotes(cells[i], Masks.ALL and seen.inv())
+        }
+        val next = commit(s, cells)
+        if (next === s) return same(s)
+        return Transition(next, listOf(Effect.Persist, Effect.Haptic(HapticKind.TICK)))
     }
 
     /** Clears the entry, or the notes if there's no entry. Null when there's nothing to clear. */
