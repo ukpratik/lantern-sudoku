@@ -26,7 +26,7 @@ Startup (needs a device or emulator, API 33+): `./gradlew :app:generateBaselineP
 
 `scripts/ci.sh` runs: unit tests, the bank validator, Android Lint for both flavours (warnings are errors), R8 release builds of both flavours with the AboutLibraries licence gate, the permission gate (empty allowlist) and the size gate (Play download ≤ 10 MB).
 
-Release builds are unsigned unless signing properties exist in `~/.gradle/gradle.properties` (`lantern.upload.*` for Play, `lantern.release.*` for GitHub APKs; see ADR-012). Keys and passwords never go in this repo.
+Release builds are unsigned unless signing properties exist in `~/.gradle/gradle.properties` (`lantern.upload.*` for Play, `lantern.release.*` for GitHub APKs; see [`docs/RELEASING.md`](docs/RELEASING.md)). Keys and passwords never go in this repo.
 
 ## Project layout
 

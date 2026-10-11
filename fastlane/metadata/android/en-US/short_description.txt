@@ -1,0 +1,1 @@
+Calm, readable sudoku with hints that teach. No ads, no game over, offline.
