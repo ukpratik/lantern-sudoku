@@ -12,6 +12,8 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.size
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ColorScheme
 import androidx.compose.runtime.remember
@@ -112,24 +114,53 @@ class CoachTargets {
 
 val LocalCoachTargets = compositionLocalOf<CoachTargets?> { null }
 
-/** One placement rule for all three tips (D-046). Pure, so it is unit-tested; all values in px of the host's coordinates. */
-data class CoachPlacement(val left: Float, val bottom: Float, val width: Float, val maxHeight: Float, val caretX: Float) {
+/**
+ * One placement rule for all three tips (D-046, ISS-014). Pure, so it is unit-tested; all values in px of the host's
+ * coordinates. [pointX], [pointY] is where the caret's point lands (the test checks it lies on the anchor). For a tool tip
+ * ([stemX] not null) the caret is a leader: a line from the tip's right edge down the pad's end margin, right of the
+ * tools, to the tool's middle, ending in an arrowhead pointing left into the tool.
+ */
+data class CoachPlacement(
+    val left: Float,
+    val bottom: Float,
+    val width: Float,
+    val maxHeight: Float,
+    val caretX: Float,
+    val pointX: Float,
+    val pointY: Float,
+    val stemX: Float? = null,
+) {
     companion object {
         /**
-         * The tip sits **above the pad**, its caret [caret] px tall pointing down at the anchor's centre, the caret's point
-         * on the pad's top edge ([bottom]): it covers part of the board, never a key or a tool. It is as wide as the pad less [margin] each side,
-         * at most [maxWidth], centred on the anchor where it can be. Its height is capped by the room between the board's
-         * top ([boardTop], or the host's top if the board scrolled away) and the pad, so it always stays on screen inside
-         * the safe-drawing area (the host); text beyond that scrolls, the actions don't (D-038 panels). [maxHeight]
-         * includes the caret.
+         * The tip sits **above the pad**, its bottom on the pad's top edge ([bottom]): it covers part of the board, never
+         * a key or a tool. It is as wide as the pad less [margin] each side, at most [maxWidth]. Its height is capped by
+         * the room between the board's top ([boardTop], or the host's top if the board scrolled away) and the pad, so it
+         * always stays on screen inside the safe-drawing area (the host); text beyond that scrolls, the actions don't
+         * (D-038 panels). [maxHeight] includes the caret.
+         *
+         * - Key tip (lock): centred on the anchor where it can be, the [caret] px caret pointing down at the anchor's
+         *   column, its point on the pad's top edge (D-046).
+         * - Tool tip ([side], Notes and Hint, ISS-014): the tools are a column or grid whose top tool is Undo, so a caret on
+         *   the pad's top edge would point at Undo/Redo. The tip is flush with the pad's end (less [margin]) and its
+         *   leader runs down the margin right of the tools to the anchor's middle; the point sits [caret]/4 inside it.
          */
-        fun of(pad: Rect, anchor: Rect, boardTop: Float, hostHeight: Float, maxWidth: Float, margin: Float, caret: Float, corner: Float): CoachPlacement {
+        fun of(
+            pad: Rect, anchor: Rect, boardTop: Float, hostHeight: Float, maxWidth: Float, margin: Float, caret: Float, corner: Float,
+            side: Boolean = false,
+        ): CoachPlacement {
             val width = minOf(maxWidth, pad.width - 2 * margin).coerceAtLeast(0f)
-            val left = (anchor.center.x - width / 2).coerceIn(pad.left + margin, maxOf(pad.left + margin, pad.right - margin - width))
-            val bottom = minOf(pad.top, hostHeight) // the caret's point
+            val minLeft = pad.left + margin
+            val maxLeft = maxOf(minLeft, pad.right - margin - width)
+            val left = if (side) maxLeft else (anchor.center.x - width / 2).coerceIn(minLeft, maxLeft)
+            val bottom = minOf(pad.top, hostHeight) // the bottom of the caret row
             val top = maxOf(boardTop, 0f) + margin
+            val maxHeight = (bottom - top).coerceAtLeast(0f)
+            if (side) {
+                val stemX = left + width
+                return CoachPlacement(left, bottom, width, maxHeight, caretX = width, pointX = anchor.right - caret / 4, pointY = anchor.center.y, stemX = stemX)
+            }
             val caretX = (anchor.center.x - left).coerceIn(corner + caret, maxOf(corner + caret, width - corner - caret))
-            return CoachPlacement(left, bottom, width, (bottom - top).coerceAtLeast(0f), caretX)
+            return CoachPlacement(left, bottom, width, maxHeight, caretX, pointX = left + caretX, pointY = bottom)
         }
     }
 }
@@ -176,8 +207,13 @@ internal fun BoxScope.CoachTipOverlay(coach: CoachUi?, targets: CoachTargets) {
             margin = 8.dp.toPx(),
             caret = CARET.toPx(),
             corner = 12.dp.toPx(),
+            side = tip != CoachTip.LOCK,
         )
     }
+    val caretColor = MaterialTheme.colorScheme.inverseSurface
+    // The leader runs over the screen's own background, where the ink colour can vanish (dark themes): it takes the
+    // accent, which reads on the background in all four themes.
+    val leaderColor = MaterialTheme.colorScheme.primary
     // The tip is measured at the placement's width and height cap, then placed with its caret on the pad's top edge.
     Layout(
         content = {
@@ -190,9 +226,9 @@ internal fun BoxScope.CoachTipOverlay(coach: CoachUi?, targets: CoachTargets) {
                     contentColor = scheme.inverseOnSurface,
                     shadowElevation = 3.dp,
                 ) { CoachTipContent(coach, tip) }
-                val caretColor = scheme.inverseSurface
                 Box(
                     Modifier.fillMaxWidth().height(CARET).drawBehind {
+                        if (p.stemX != null) return@drawBehind // a tool tip's leader is drawn below
                         val x = p.caretX
                         drawPath(Path().apply {
                             moveTo(x - size.height, 0f)
@@ -203,13 +239,34 @@ internal fun BoxScope.CoachTipOverlay(coach: CoachUi?, targets: CoachTargets) {
                     },
                 )
             }
+            // ISS-014: a tool tip's leader (under the tip), from the tip's end edge down the pad's end margin to its tool.
+            Box(Modifier.drawBehind {
+                val stemX = p.stemX ?: return@drawBehind
+                val head = CARET.toPx()
+                val stroke = 3.dp.toPx()
+                val from = p.bottom - head - 12.dp.toPx()
+                drawLine(leaderColor, Offset(stemX - stroke / 2, from), Offset(stemX - stroke / 2, p.pointY), stroke)
+                drawLine(leaderColor, Offset(stemX, p.pointY), Offset(p.pointX + head, p.pointY), stroke)
+                drawPath(Path().apply {
+                    moveTo(p.pointX, p.pointY)
+                    lineTo(p.pointX + head * 1.25f, p.pointY - head)
+                    lineTo(p.pointX + head * 1.25f, p.pointY + head)
+                    close()
+                }, leaderColor)
+            })
+            // Where the caret's point lands; tests check it lies on the anchor (ISS-014). No content, so TalkBack skips it.
+            Box(Modifier.size(2.dp).semantics { testTag = "coach-caret" })
         },
         modifier = Modifier.matchParentSize(),
     ) { measurables, constraints ->
         val w = p.width.roundToInt()
-        val tipPlaceable = measurables.first().measure(Constraints(minWidth = w, maxWidth = w, maxHeight = p.maxHeight.toInt()))
+        val tipPlaceable = measurables[0].measure(Constraints(minWidth = w, maxWidth = w, maxHeight = p.maxHeight.toInt()))
+        val leader = measurables[1].measure(Constraints.fixed(constraints.maxWidth, constraints.maxHeight))
+        val point = measurables[2].measure(Constraints())
         layout(constraints.maxWidth, constraints.maxHeight) {
+            leader.place(0, 0)
             tipPlaceable.place(p.left.roundToInt(), p.bottom.toInt() - tipPlaceable.height)
+            point.place(p.pointX.roundToInt() - point.width / 2, p.pointY.roundToInt() - point.height / 2)
         }
     }
 }
