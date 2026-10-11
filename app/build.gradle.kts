@@ -15,8 +15,8 @@ android {
         applicationId = "io.github.ukpratik.lanternsudoku" // permanent after first publication (ADR-010)
         // versionCode = MAJOR × 10000 + MINOR × 100 + PATCH (ADR-012). Release candidates sit just below the final
         // version: 1.0.0-rcN = 10000 − 100 + N, so rc1 = 9901, rc2 = 9902 < 1.0.0 = 10000 (D-035).
-        versionCode = 9902
-        versionName = "1.0.0-rc2"
+        versionCode = 9903
+        versionName = "1.0.0-rc3"
     }
 
     // ADR-012: keys live in ~/.android-keys/, passwords in ~/.gradle/gradle.properties, never in the repo.
