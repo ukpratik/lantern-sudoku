@@ -60,8 +60,8 @@ Print a fingerprint with `keytool -list -v -keystore ~/.android-keys/lantern-rel
 
 | Certificate | SHA-256 |
 |---|---|
-| Release key (`lantern-release`): GitHub Releases APKs | `<to be filled in after the key is created>` |
-| Upload key (`lantern-upload`): Play uploads | `<to be filled in after the key is created>` |
+| Release key (`lantern-release`): GitHub Releases APKs | `BD:45:37:13:0C:F9:52:57:53:31:B8:2E:1D:C2:D2:BD:C1:E6:39:ED:81:87:5A:A0:63:FB:13:27:2B:1C:B5:29` |
+| Upload key (`lantern-upload`): Play uploads | `3F:DA:B0:67:7B:BC:24:C0:6B:83:DB:6C:60:32:8D:CE:1D:23:90:2E:06:39:32:80:BF:D8:8F:11:C3:8E:0E:9C` |
 | Play app-signing key (held by Google): Play installs | `<from Play Console → Test and release → App integrity, after the first upload>` |
 | F-Droid signing key: F-Droid installs | `<from the F-Droid package page after the first F-Droid build>` |
 
