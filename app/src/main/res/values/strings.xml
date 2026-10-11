@@ -92,6 +92,7 @@
     <string name="announce_erased" tools:ignore="PluralsCandidate">Erased row %1$d, column %2$d</string>
     <string name="announce_note_added" tools:ignore="PluralsCandidate">Note %1$d added, row %2$d, column %3$d</string>
     <string name="announce_note_removed" tools:ignore="PluralsCandidate">Note %1$d removed, row %2$d, column %3$d</string>
+    <string name="announce_restarted">Puzzle restarted</string>
     <string name="announce_blocked" tools:ignore="PluralsCandidate">Row %1$d, column %2$d has %3$d. %4$d is locked.</string>
     <string name="cell_conflict">conflict</string>
     <string name="cell_mistake">mistake</string>
