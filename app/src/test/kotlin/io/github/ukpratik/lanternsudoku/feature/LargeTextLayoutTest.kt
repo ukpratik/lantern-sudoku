@@ -29,6 +29,7 @@ import io.github.ukpratik.lanternsudoku.MainActivity
 import io.github.ukpratik.lanternsudoku.data.LoadResult
 import io.github.ukpratik.lanternsudoku.data.SaveRequest
 import io.github.ukpratik.lanternsudoku.engine.model.Level
+import io.github.ukpratik.lanternsudoku.feature.game.SCROLL_GUTTER
 import kotlinx.coroutines.runBlocking
 import org.junit.Rule
 import org.junit.Test
@@ -336,6 +337,7 @@ class LargeTextLayoutTest(private val qualifiers: String, private val fontScale:
         assertOnScreen(tag("hint-primary"), "$what: primary button")
         assertOnScreen(tag("hint-secondary"), "$what: secondary button")
         assertTextFits(what, panel = true)
+        assertTextClearsTheScrollThumb("hint-text", what)
     }
 
     private fun assertPanelReadable(what: String) {
@@ -344,6 +346,26 @@ class LargeTextLayoutTest(private val qualifiers: String, private val fontScale:
         assertOnScreen(tag("panel-primary"), "$what: primary button")
         assertOnScreen(tag("panel-secondary"), "$what: secondary button")
         assertTextFits(what, panel = true)
+        assertTextClearsTheScrollThumb("panel-text", what)
+    }
+
+    /**
+     * ISS-007: the scroll thumb runs in the last [SCROLL_GUTTER] of the scrolling text area; no text node (title, chip,
+     * explanation, legend, meta line, body, fine print) reaches into it, so no letter is drawn under the thumb.
+     */
+    private fun assertTextClearsTheScrollThumb(scrollTag: String, what: String) {
+        val box = tag(scrollTag).fetchSemanticsNode()
+        val thumbLeft = box.boundsInRoot.right - with(compose.density) { SCROLL_GUTTER.toPx() }
+        val texts = compose.onAllNodes(hasAnyAncestor(hasTestTag(scrollTag)) and hasText("", substring = true), useUnmergedTree = true)
+            .fetchSemanticsNodes() + compose.onAllNodes(hasAnyAncestor(hasTestTag(scrollTag)) and hasTestTag("hint-body"), useUnmergedTree = true)
+            .fetchSemanticsNodes()
+        assertWithMessage("$what: text nodes in $scrollTag").that(texts).isNotEmpty()
+        for (n in texts) {
+            // Unclipped right edge: where the node is laid out, not just its visible part.
+            val right = n.positionInRoot.x + n.size.width
+            assertWithMessage("$what on $where: '${n.config.getOrNull(SemanticsProperties.Text)?.joinToString { it.text }}' ends at $right px, " +
+                "the scroll thumb's gutter starts at $thumbLeft px").that(right).isAtMost(thumbLeft + 0.5f)
+        }
     }
 
     private fun hasAnyAncestor(m: SemanticsMatcher) = androidx.compose.ui.test.hasAnyAncestor(m)

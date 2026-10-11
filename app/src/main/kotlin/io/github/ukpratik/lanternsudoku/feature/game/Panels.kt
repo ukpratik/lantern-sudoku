@@ -67,9 +67,12 @@ fun GamePanel(
         color = scheme.surfaceContainer, contentColor = scheme.onSurface,
         shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
     ) {
-        Column(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 16.dp), verticalArrangement = Arrangement.SpaceBetween) {
+        // The end padding is 20 dp in all: [SCROLL_GUTTER] of it belongs to the text area, where the scroll thumb runs (ISS-007).
+        Column(Modifier.fillMaxWidth().padding(start = 20.dp, end = 20.dp - SCROLL_GUTTER, top = 16.dp, bottom = 16.dp),
+            verticalArrangement = Arrangement.SpaceBetween) {
             val scroll = rememberScrollState()
-            Column(Modifier.weight(1f, fill = false).scrollCue(scroll).verticalScroll(scroll).semantics { testTag = "panel-text" }) {
+            Column(Modifier.weight(1f, fill = false).scrollCue(scroll).verticalScroll(scroll).padding(end = SCROLL_GUTTER)
+                .semantics { testTag = "panel-text" }) {
                 val disc: @Composable () -> Unit = {
                     Box(Modifier.size(if (compact) 40.dp else 48.dp).clip(CircleShape).background(scheme.secondaryContainer),
                         contentAlignment = Alignment.Center) {
@@ -103,7 +106,7 @@ fun GamePanel(
                     Text(finePrint, style = MaterialTheme.typography.bodyMedium, color = scheme.onSurfaceVariant)
                 }
             }
-            Column(Modifier.padding(top = 12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Column(Modifier.padding(top = 12.dp, end = SCROLL_GUTTER), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 PrimaryButton(primary.first, primary.second, Modifier.fillMaxWidth().heightIn(min = 52.dp).semantics { testTag = "panel-primary" })
                 SecondaryButton(secondary.first, secondary.second, Modifier.fillMaxWidth().heightIn(min = 48.dp).semantics { testTag = "panel-secondary" })
             }
@@ -112,8 +115,19 @@ fun GamePanel(
 }
 
 /**
+ * The strip at the end of a panel's scrolling text that only the scroll thumb uses (ISS-007): the text column is padded
+ * by it inside the scroll and the thumb is drawn in its middle, so no line runs under the thumb. It is taken out of the
+ * panel's 20 dp end padding, so the text keeps its width.
+ */
+val SCROLL_GUTTER = 12.dp
+
+/** The scroll thumb's width; it is centred in [SCROLL_GUTTER]. */
+val SCROLL_THUMB_WIDTH = 3.dp
+
+/**
  * Shows that a panel's text goes on below (ISS-001): a fade over the last lines while there's more to scroll and a thin
- * scroll thumb. Apply before `verticalScroll` with the same [state], so it draws over the visible window.
+ * scroll thumb in the [SCROLL_GUTTER]. Apply before `verticalScroll` with the same [state], so it draws over the visible
+ * window, and pad the scrolled content's end by [SCROLL_GUTTER].
  */
 @Composable
 fun Modifier.scrollCue(state: ScrollState): Modifier {
@@ -130,7 +144,8 @@ fun Modifier.scrollCue(state: ScrollState): Modifier {
         val content = size.height + state.maxValue
         val thumbH = maxOf(size.height * size.height / content, 16.dp.toPx())
         val top = (size.height - thumbH) * state.value / state.maxValue
-        val w = 3.dp.toPx()
-        drawRoundRect(thumb.copy(alpha = 0.6f), topLeft = Offset(size.width - w, top), size = Size(w, thumbH), cornerRadius = CornerRadius(w / 2))
+        val w = SCROLL_THUMB_WIDTH.toPx()
+        val left = size.width - (SCROLL_GUTTER.toPx() + w) / 2
+        drawRoundRect(thumb.copy(alpha = 0.6f), topLeft = Offset(left, top), size = Size(w, thumbH), cornerRadius = CornerRadius(w / 2))
     }
 }

@@ -90,17 +90,18 @@ fun HintPanel(game: GameState, onAction: (Action) -> Unit, modifier: Modifier = 
         color = scheme.surfaceContainer, contentColor = scheme.onSurface,
         shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
     ) {
-        Column(Modifier.fillMaxWidth().padding(start = 20.dp, end = 20.dp, top = 2.dp), verticalArrangement = Arrangement.SpaceBetween) {
+        // 20 dp end padding in all; the text area's last SCROLL_GUTTER of it holds the scroll thumb (ISS-007).
+        Column(Modifier.fillMaxWidth().padding(start = 20.dp, end = 20.dp - SCROLL_GUTTER, top = 2.dp), verticalArrangement = Arrangement.SpaceBetween) {
             Column(Modifier.weight(1f, fill = false)) {
                 if (h.plan is HintPlan.Fallback) {
-                    Row(Modifier.heightIn(min = 44.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Row(Modifier.heightIn(min = 44.dp).padding(end = SCROLL_GUTTER), verticalAlignment = Alignment.CenterVertically) {
                         Icon(painterResource(R.drawable.ic_lightbulb), contentDescription = null, tint = LocalLanternColors.current.hintIcon,
                             modifier = Modifier.size(18.dp))
                         Spacer(Modifier.width(6.dp))
                         Text(text.eyebrow.orEmpty(), style = MaterialTheme.typography.labelMedium, color = scheme.onSurfaceVariant)
                     }
                 } else {
-                    Stepper(stage = h.stage, onStage = { onAction(Action.HintStage(it)) })
+                    Box(Modifier.padding(end = SCROLL_GUTTER)) { Stepper(stage = h.stage, onStage = { onAction(Action.HintStage(it)) }) }
                 }
                 AnimatedContent(
                     targetState = Triple(h.stage, h.step, text),
@@ -109,7 +110,8 @@ fun HintPanel(game: GameState, onAction: (Action) -> Unit, modifier: Modifier = 
                     label = "hint-stage",
                 ) { (_, step, t) ->
                     val scroll = rememberScrollState()
-                    Column(Modifier.fillMaxWidth().scrollCue(scroll).verticalScroll(scroll).semantics { testTag = "hint-text" }) {
+                    Column(Modifier.fillMaxWidth().scrollCue(scroll).verticalScroll(scroll).padding(end = SCROLL_GUTTER)
+                        .semantics { testTag = "hint-text" }) {
                         FlowRow(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalArrangement = Arrangement.Center) {
                             Text(
                                 t.title,
@@ -165,7 +167,7 @@ private fun HintButtons(large: Boolean, secondary: @Composable (Modifier) -> Uni
             secondary(Modifier)
             primary(Modifier)
         },
-        modifier = Modifier.fillMaxWidth().padding(top = 6.dp, bottom = 6.dp),
+        modifier = Modifier.fillMaxWidth().padding(top = 6.dp, bottom = 6.dp, end = SCROLL_GUTTER),
     ) { (sec, pri), constraints ->
         val width = constraints.maxWidth
         val gap = (if (large) 8.dp else 10.dp).roundToPx()
