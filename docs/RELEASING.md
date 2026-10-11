@@ -112,7 +112,7 @@ Users can compare the GitHub APK they downloaded against the release-key fingerp
 
 ## F-Droid: first submission (one time)
 
-Prerequisites: the repository is public; tag `v1.0.0` exists; `fastlane/metadata/android/en-US/` has the texts and the images (`icon.png`, `featureGraphic.png`, `phoneScreenshots/`); the metadata file is in `fdroid/io.github.ukpratik.lanternsudoku.yml`.
+Prerequisites: the repository is public; tag `v1.0.1` exists; `fastlane/metadata/android/en-US/` has the texts and the images (`icon.png`, `featureGraphic.png`, `phoneScreenshots/`); the metadata file is in `fdroid/io.github.ukpratik.lanternsudoku.yml`.
 
 1. Check locally with fdroidserver against the public tag: `fdroid lint`, `fdroid rewritemeta`, `fdroid build -v -l io.github.ukpratik.lanternsudoku`. The built APK must pass the permission gate (no permissions).
 2. Fork https://gitlab.com/fdroid/fdroiddata and add `metadata/io.github.ukpratik.lanternsudoku.yml` (the same content as `fdroid/…yml` here) on a branch named `io.github.ukpratik.lanternsudoku`.
