@@ -49,6 +49,9 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.testTag
+import androidx.compose.ui.layout.Layout
+import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -128,13 +131,52 @@ internal fun CompletionContent(
                 val shareDescription = stringResource(R.string.share_result_description)
                 PrimaryButton(stringResource(R.string.share_result), { onShare(share) }, icon = R.drawable.ic_share,
                     modifier = Modifier.fillMaxWidth().height(56.dp).semantics { contentDescription = shareDescription })
-                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    SecondaryButton(newGame, onNewGame, Modifier.weight(1f).heightIn(min = 48.dp))
-                    SecondaryButton(stringResource(R.string.home), onClose, Modifier.weight(1f).heightIn(min = 48.dp))
-                }
+                SideBySideOrStacked(
+                    first = { m -> SecondaryButton(newGame, onNewGame, m.semantics { testTag = "completion-new-game" }) },
+                    second = { m -> SecondaryButton(stringResource(R.string.home), onClose, m.semantics { testTag = "completion-home" }) },
+                )
             } else {
-                PrimaryButton(newGame, onNewGame, icon = R.drawable.ic_add, modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp))
-                SecondaryButton(stringResource(R.string.home), onClose, Modifier.fillMaxWidth().heightIn(min = 56.dp))
+                PrimaryButton(newGame, onNewGame, icon = R.drawable.ic_add,
+                    modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp).semantics { testTag = "completion-new-game" })
+                SecondaryButton(stringResource(R.string.home), onClose,
+                    Modifier.fillMaxWidth().heightIn(min = 56.dp).semantics { testTag = "completion-home" })
+            }
+        }
+    }
+}
+
+/**
+ * The daily's New game · Home pair: side by side, 48 dp, while both labels fit half the width on one line; otherwise
+ * (large text, long level names) stacked full width in the same order, each growing with its label (ISS-008, design
+ * §3.1 "stack when labels don't fit").
+ */
+@Composable
+private fun SideBySideOrStacked(first: @Composable (Modifier) -> Unit, second: @Composable (Modifier) -> Unit) {
+    Layout(
+        content = {
+            first(Modifier)
+            second(Modifier)
+        },
+        modifier = Modifier.fillMaxWidth(),
+    ) { (a, b), constraints ->
+        val width = constraints.maxWidth
+        val gap = 10.dp.roundToPx()
+        val minH = 48.dp.roundToPx()
+        val half = (width - gap) / 2
+        if (a.maxIntrinsicWidth(minH) <= half && b.maxIntrinsicWidth(minH) <= half) {
+            val h = maxOf(minH, a.minIntrinsicHeight(half), b.minIntrinsicHeight(half))
+            val pa = a.measure(Constraints.fixed(half, h))
+            val pb = b.measure(Constraints.fixed(width - gap - half, h))
+            layout(width, h) {
+                pa.place(0, 0)
+                pb.place(half + gap, 0)
+            }
+        } else {
+            val pa = a.measure(Constraints(minWidth = width, maxWidth = width, minHeight = minH))
+            val pb = b.measure(Constraints(minWidth = width, maxWidth = width, minHeight = minH))
+            layout(width, pa.height + gap + pb.height) {
+                pa.place(0, 0)
+                pb.place(0, pa.height + gap)
             }
         }
     }
