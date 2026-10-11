@@ -10,6 +10,7 @@ import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.testTag
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -130,9 +131,11 @@ val SCROLL_THUMB_WIDTH = 3.dp
  * window, and pad the scrolled content's end by [SCROLL_GUTTER].
  */
 @Composable
-fun Modifier.scrollCue(state: ScrollState): Modifier {
-    val fade = MaterialTheme.colorScheme.surfaceContainer
-    val thumb = MaterialTheme.colorScheme.onSurfaceVariant
+fun Modifier.scrollCue(
+    state: ScrollState,
+    fade: Color = MaterialTheme.colorScheme.surfaceContainer,
+    thumb: Color = MaterialTheme.colorScheme.onSurfaceVariant,
+): Modifier {
     return drawWithContent {
         drawContent()
         if (state.maxValue == 0) return@drawWithContent

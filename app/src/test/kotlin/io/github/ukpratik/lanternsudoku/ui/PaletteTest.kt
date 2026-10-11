@@ -96,6 +96,28 @@ class PaletteTest {
         }
     }
 
+    /**
+     * ISS-012: the coach tip's Skip / Next / Got it are drawn in `on-inverse-accent` (inversePrimary) on `inverse-bg`
+     * (inverseSurface), the design's actionContentColor, at ≥ 4.5:1 in all four themes (tokens.css values), and every
+     * TextButton in the tip takes those colours (M3's TextButton default, primary, was 1:1 in HC light).
+     */
+    @Test
+    fun coachTipActionsUseTheInverseAccent() {
+        for ((p, theme) in Palettes.all.zip(listOf("light", "dark", "hc-light", "hc-dark"))) {
+            val tokens = Tokens.of(theme)
+            val buttons = io.github.ukpratik.lanternsudoku.feature.game.coachActionColors(p.colorScheme)
+            assertWithMessage("$theme coach action colour").that(buttons.contentColor).isEqualTo(tokens.getValue("on-inverse-accent"))
+            assertWithMessage("$theme coach tip container").that(p.colorScheme.inverseSurface).isEqualTo(tokens.getValue("inverse-bg"))
+            assertWithMessage("$theme coach action contrast").that(contrast(buttons.contentColor, tokens.getValue("inverse-bg"))).isAtLeast(4.5)
+            assertWithMessage("$theme coach button fill").that(buttons.containerColor).isEqualTo(Color.Transparent)
+        }
+        val src = java.io.File("src/main/kotlin/io/github/ukpratik/lanternsudoku/feature/game/CoachMarks.kt").readText()
+        val buttons = Regex("""TextButton\(""").findAll(src).count()
+        assertThat(buttons).isAtLeast(2)
+        assertWithMessage("every coach TextButton passes colors = coachActionColors")
+            .that(Regex("""TextButton\([^\n]*colors = buttons""").findAll(src).count()).isEqualTo(buttons)
+    }
+
     private fun checkContrast(k: io.github.ukpratik.lanternsudoku.ui.theme.LanternColors) {
         val fills = listOf(k.cell, k.peer, k.sameDigit, k.selected, k.conflict)
         for (bg in fills) {

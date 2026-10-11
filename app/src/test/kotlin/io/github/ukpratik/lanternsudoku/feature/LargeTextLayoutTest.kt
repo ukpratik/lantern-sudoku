@@ -208,7 +208,11 @@ class LargeTextLayoutTest(private val qualifiers: String, private val fontScale:
     /** ISS-002 and ISS-003: the Limit and Almost! actions are on screen, and the compact bar counts mistakes. */
     @Test
     fun limitAndAlmostShowTheirActions_andTheBarCountsMistakes() {
-        runBlocking { app.container.settingsRepository.setMistakeLimit(3) }
+        runBlocking {
+            app.container.settingsRepository.setMistakeLimit(3)
+            // No coach tip: tip 2 sits over the lower board rows (D-046), where this test taps r9c9.
+            app.container.settingsRepository.setCoachMarks(io.github.ukpratik.lanternsudoku.feature.game.CoachTip.ALL)
+        }
         openWithBoard(WRONG_7.replaceRange(0, 1, ".")) // no mistakes yet
         val counter = compose.onNode(hasText("Mistakes 0 of 3"), useUnmergedTree = true)
         assertOnScreen(counter, "Mistakes counter before")
@@ -317,6 +321,48 @@ class LargeTextLayoutTest(private val qualifiers: String, private val fontScale:
         compose.onNodeWithText("Daily").performClick()
         compose.waitUntil(10_000) { compose.onAllNodes(hasText("Started · ", substring = true), useUnmergedTree = true).fetchSemanticsNodes().isNotEmpty() }
         assertTextFits("Daily tab with past days")
+    }
+
+    /**
+     * ISS-010, ISS-011 (D-046): each of the three coach tips sits inside the window (Robolectric's root is the area inside
+     * the system bars, so inside the safe-drawing area), its Skip and Next / Got it are wholly on screen, and it covers no
+     * number key and no tool: the anchor it points at stays tappable. Doing the taught action (Notes) moves on.
+     */
+    @Test
+    fun coachTipsStayInsideTheWindowAndOffThePad() {
+        compose.waitUntil(10_000) { compose.onAllNodes(hasText("New game")).fetchSemanticsNodes().isNotEmpty() }
+        compose.onNodeWithText("Easy").scrollIfNeededAndClick()
+        waitForBoard()
+        compose.waitUntil(5_000) { compose.onAllNodes(hasTestTag("coach-mark"), useUnmergedTree = true).fetchSemanticsNodes().isNotEmpty() }
+        assertCoachTipClear("Tip 1 (lock)", anchor = "key-5")
+        tag("coach-next").performClick()
+        compose.waitForIdle()
+        assertCoachTipClear("Tip 2 (notes)", anchor = "tool-notes")
+        tag("tool-notes").performClick() // the taught action: tapped while the tip is up
+        compose.waitForIdle()
+        assertCoachTipClear("Tip 3 (hint)", anchor = "tool-hint")
+        assertThat(compose.onAllNodes(hasText("Got it"), useUnmergedTree = true).fetchSemanticsNodes()).isNotEmpty()
+        tag("coach-next").performClick()
+        compose.waitUntil(5_000) { compose.onAllNodes(hasTestTag("coach-mark"), useUnmergedTree = true).fetchSemanticsNodes().isEmpty() }
+    }
+
+    private fun assertCoachTipClear(what: String, anchor: String) {
+        compose.waitForIdle()
+        val tip = tag("coach-mark").fetchSemanticsNode()
+        val root = mainRoot()
+        val box = tip.boundsInRoot
+        assertWithMessage("$what is not wholly inside the window on $where (tip $box, root ${root.size})")
+            .that(box.top >= -1 && box.bottom <= root.size.height + 1 && box.left >= -1 && box.right <= root.size.width + 1 &&
+                box.height >= tip.size.height - 1).isTrue()
+        assertOnScreen(tag("coach-skip"), "$what: Skip")
+        assertOnScreen(tag("coach-next"), "$what: Next")
+        assertOnScreen(compose.onNode(isHeading and hasAnyAncestor(hasTestTag("coach-mark")), useUnmergedTree = true).let { it }, "$what: title")
+        for (t in (1..9).map { "key-$it" } + listOf("tool-undo", "tool-redo", "tool-erase", "tool-notes", "tool-hint")) {
+            val b = tag(t).fetchSemanticsNode().boundsInRoot
+            assertWithMessage("$what covers $t on $where (tip $box, $t $b)").that(box.overlaps(b)).isFalse()
+        }
+        assertOnScreen(tag(anchor), "$what: anchor $anchor")
+        assertTextFits(what)
     }
 
     /** An entry of the game's ⋮ menu, or of the Pause screen where there's no ⋮ (compact + large text, D-037). */

@@ -32,6 +32,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.layout.boundsInRoot
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
@@ -80,7 +82,10 @@ fun Controls(
     iconOnlyTools: Boolean = false,
     coach: CoachUi? = null,
 ) {
-    Row(modifier.fillMaxWidth().height(height).padding(horizontal = 16.dp)) {
+    // The coach tip keeps clear of this whole row, keys and tools (ISS-010).
+    val coachTargets = LocalCoachTargets.current
+    val reportPad = if (coach != null && coachTargets != null) Modifier.onGloballyPositioned { coachTargets.pad = it.boundsInRoot() } else Modifier
+    Row(modifier.fillMaxWidth().height(height).then(reportPad).padding(horizontal = 16.dp)) {
         NumberPad(game, compact, colors, onAction, Modifier.weight(1f).fillMaxHeight(), coach)
         Spacer(Modifier.width(12.dp))
         if (compact) ToolGrid(game, onAction, toolHeight, largeText, iconOnlyTools, coach) else ToolColumn(game, onAction, toolHeight, largeText, coach)
