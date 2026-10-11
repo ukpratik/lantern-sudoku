@@ -13,10 +13,12 @@ android {
 
     defaultConfig {
         applicationId = "io.github.ukpratik.lanternsudoku" // permanent after first publication (ADR-010)
-        // versionCode = MAJOR × 10000 + MINOR × 100 + PATCH (ADR-012). Release candidates sit just below the final
-        // version: 1.0.0-rcN = 10000 − 100 + N, so rc1 = 9901, rc2 = 9902 < 1.0.0 = 10000 (D-035).
-        versionCode = 9903
-        versionName = "1.0.0-rc3"
+        // versionCode = MAJOR × 10000 + MINOR × 100 + PATCH (ADR-012). 1.0.0's candidates sat just below it
+        // (10000 − 100 + N = 9901..9903, D-035). A patch has no free code below it (1.0.0 = 10000, 1.0.1 = 10001), so
+        // 1.0.1's candidates use 1.0.1's own code: they upgrade 1.0.0, are never published, and the final 1.0.1 is
+        // built with the same code (D-044).
+        versionCode = 10001
+        versionName = "1.0.1-rc1"
     }
 
     // ADR-012: keys live in ~/.android-keys/, passwords in ~/.gradle/gradle.properties, never in the repo.
