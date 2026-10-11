@@ -256,6 +256,80 @@ class LargeTextLayoutTest(private val qualifiers: String, private val fontScale:
         assertTextFits("Stats by level")
     }
 
+    /**
+     * M6 (1.0.1) screens, D-036..D-040 rules: the coach-mark tip, Fill notes' confirmation, Settings with every US-023 row,
+     * Open-source licences, Learn (list and the longest page), and the Daily tab's Past 7 days with done, started and
+     * not-played rows (US-016).
+     */
+    @Test
+    fun m6ScreensHold() {
+        compose.waitUntil(10_000) { compose.onAllNodes(hasText("New game")).fetchSemanticsNodes().isNotEmpty() }
+        compose.onNodeWithText("Easy").scrollIfNeededAndClick()
+        waitForBoard()
+        compose.waitUntil(5_000) { compose.onAllNodes(hasTestTag("coach-mark"), useUnmergedTree = true).fetchSemanticsNodes().isNotEmpty() }
+        assertTextFits("Coach mark 1 of 3")
+        tag("coach-next").performClick()
+        compose.waitForIdle()
+        assertTextFits("Coach mark 2 of 3")
+        tag("coach-skip").performClick()
+        compose.waitForIdle()
+
+        // Fill notes, then again: the second time asks first (US-009).
+        openMenuEntry("Fill notes")
+        compose.waitForIdle()
+        openMenuEntry("Fill notes")
+        compose.waitUntil(5_000) { compose.onAllNodes(hasText("Replace your notes?")).fetchSemanticsNodes().isNotEmpty() }
+        assertTextFits("Fill notes confirmation")
+        compose.onNodeWithText("Cancel").performClick()
+
+        compose.onNode(hasContentDescription("Pause")).performClick()
+        compose.onNodeWithText("Settings").scrollIfNeededAndClick()
+        compose.waitForIdle()
+        assertTextFits("Settings (all of US-023)")
+        compose.onNodeWithText("Open-source licences").scrollIfNeededAndClick()
+        compose.waitUntil(10_000) { compose.onAllNodes(hasText("Fraunces", substring = true)).fetchSemanticsNodes().isNotEmpty() ||
+            compose.onAllNodes(hasText("Activity", substring = true)).fetchSemanticsNodes().isNotEmpty() }
+        assertTextFits("Open-source licences")
+        compose.onNode(hasContentDescription("Back")).performClick()
+        compose.onNodeWithText("Learn techniques").scrollIfNeededAndClick()
+        compose.waitForIdle()
+        assertTextFits("Learn")
+        compose.onNodeWithText("X-Wing").scrollIfNeededAndClick()
+        compose.waitUntil(5_000) { compose.onAllNodes(hasTestTag("learn-body"), useUnmergedTree = true).fetchSemanticsNodes().isNotEmpty() }
+        assertTextFits("Learn page: X-Wing")
+
+        // Past 7 days with a done, a started and not-played rows (US-016), back on Home.
+        // System Back, step by step: Learn page → Learn → Settings → Pause (resumes) → game (leaves) → Home.
+        repeat(8) {
+            if (compose.onAllNodes(hasText("Stats")).fetchSemanticsNodes().isEmpty()) {
+                compose.runOnUiThread { compose.activity.onBackPressedDispatcher.onBackPressed() }
+                compose.waitForIdle()
+            }
+        }
+        compose.waitUntil(10_000) { compose.onAllNodes(hasText("Stats")).fetchSemanticsNodes().isNotEmpty() }
+        val repo = app.container.gameRepository
+        runBlocking {
+            val today = app.container.today.refresh()
+            val done = repo.openOrCreateDaily(today.minusDays(1))!!
+            repo.write(SaveRequest.Complete(done, (repo.load(done) as LoadResult.Ok).state, 4_000_000L))
+            repo.openOrCreateDaily(today.minusDays(3))
+        }
+        compose.onNodeWithText("Daily").performClick()
+        compose.waitUntil(10_000) { compose.onAllNodes(hasText("Started · ", substring = true), useUnmergedTree = true).fetchSemanticsNodes().isNotEmpty() }
+        assertTextFits("Daily tab with past days")
+    }
+
+    /** An entry of the game's ⋮ menu, or of the Pause screen where there's no ⋮ (compact + large text, D-037). */
+    private fun openMenuEntry(text: String) {
+        if (compose.onAllNodes(hasContentDescription("More options")).fetchSemanticsNodes().isNotEmpty()) {
+            compose.onNode(hasContentDescription("More options")).performClick()
+            compose.onNodeWithText(text).performClick()
+        } else {
+            compose.onNode(hasContentDescription("Pause")).performClick()
+            compose.onNodeWithText(text).scrollIfNeededAndClick()
+        }
+    }
+
     // ---- helpers ----
 
     private fun tag(t: String) = compose.onNodeWithTag(t, useUnmergedTree = true)
@@ -303,7 +377,10 @@ class LargeTextLayoutTest(private val qualifiers: String, private val fontScale:
         performClick()
     }
 
-    private fun rootHeight() = compose.onNode(isRoot()).fetchSemanticsNode().size.height
+    /** The activity's window; popups (the coach-mark tooltip, US-024) are further roots, checked by [assertTextFits]. */
+    private fun mainRoot() = compose.onAllNodes(isRoot()).fetchSemanticsNodes().first()
+
+    private fun rootHeight() = mainRoot().size.height
 
     /** Fully visible: nothing cut by a parent or a scroll window, and inside the window. No scrolling is done. */
     private fun assertOnScreen(node: SemanticsNodeInteraction, what: String) {
@@ -373,7 +450,7 @@ class LargeTextLayoutTest(private val qualifiers: String, private val fontScale:
     /** [panel]: a hint/Almost!/Limit screen, where the small-scroll-box rule waits on the 360×640 decision ([panelTextMayScroll]). */
     private fun assertTextFits(screen: String, panel: Boolean = false) {
         compose.waitForIdle()
-        val root = compose.onNode(isRoot()).fetchSemanticsNode()
+        val root = mainRoot()
         val density = compose.density.density
         val problems = mutableListOf<String>()
         fun visit(node: SemanticsNode, scrollBox: SemanticsNode?) {

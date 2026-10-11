@@ -271,7 +271,7 @@ private fun ChainBar(label: String, step: Int, count: Int, onAction: (Action) ->
 
 /** Role legend (design .roles): each swatch repeats the board's shape for that role, so colour is never the only cue. */
 @Composable
-private fun Legend(items: List<LegendItem>) {
+internal fun Legend(items: List<LegendItem>) {
     val k = LocalLanternColors.current
     val muted = MaterialTheme.colorScheme.onSurfaceVariant
     FlowRow(Modifier.padding(top = 10.dp), horizontalArrangement = Arrangement.spacedBy(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {

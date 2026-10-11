@@ -145,7 +145,10 @@ fun HomeScreen(vm: HomeViewModel, onOpenGame: (Long) -> Unit, onOpenSettings: ()
                 Column(Modifier.widthIn(max = 480.dp).fillMaxSize()) {
                     when (HomeTab.entries[tab]) {
                         HomeTab.PLAY -> PlayTab(state, vm, onOpenSettings, share)
-                        HomeTab.DAILY -> DailyTab(daily, vm::onPlayDaily, share)
+                        HomeTab.DAILY -> DailyTab(daily, vm::onPlayDaily, share) { id ->
+                            tab = HomeTab.PLAY.ordinal // leaving the summary returns to Play, like every game (TC-159)
+                            onOpenGame(id)
+                        }
                         HomeTab.STATS -> StatsTab(stats, onPlayToday = { vm.onPlayDaily() }, onPickLevel = { tab = HomeTab.PLAY.ordinal })
                     }
                 }

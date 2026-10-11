@@ -47,6 +47,13 @@ data class GameUiState(
     val continueOrNew: ContinueSummary? = null,
     /** The last placement, note change or blocked tap, for TalkBack's polite live region (US-022). */
     val change: BoardChange? = null,
+    /** The coach-mark tip on screen (US-024), or null. */
+    val coachTip: CoachTip? = null,
+    /**
+     * A daily completed earlier, opened from the Daily tab's Past 7 days list (US-016): only its summary shows, from
+     * [completedGrid]; there's no game to play and it never counts as "just completed" (no rate prompt, US-025).
+     */
+    val completedGrid: String? = null,
 )
 
 sealed interface GameEvent {
@@ -69,6 +76,7 @@ class GameViewModel(
     settings: Flow<Settings>,
     private val now: () -> Long,
     private val wallClock: () -> Long = System::currentTimeMillis,
+    private val coach: CoachMarkStore? = null,
 ) : ViewModel() {
     private val _state = MutableStateFlow(GameUiState())
     val state: StateFlow<GameUiState> = _state.asStateFlow()
@@ -86,6 +94,7 @@ class GameViewModel(
     private var ticker: Job? = null
     private var saveFailedShownAt = Long.MIN_VALUE / 2
     private var changeSeq = 0
+    private var coachMask = CoachTip.ALL
 
     init {
         viewModelScope.launch { settings.collect { s -> _state.update { it.copy(settings = s) } } }
@@ -111,9 +120,48 @@ class GameViewModel(
                 if (DebugHooks.ENABLED && DebugHooks.consumeNearSolved()) debugNearSolved()
                 if (DebugHooks.ENABLED) DebugHooks.consumeBoard()?.let(::debugBoard)
                 if (resumed) startClock()
+                if (r.state.status != Status.COMPLETED) coach?.let { coachMask = it.start(); presentNextTip() }
             }
-            is LoadResult.Discarded, LoadResult.Missing -> events.send(GameEvent.Leave)
+            LoadResult.Missing -> {
+                // A completed daily from the Past 7 days list (US-016) opens on its summary; anything else leaves.
+                val done = repository.completedView(gameId) ?: return events.send(GameEvent.Leave)
+                _state.update {
+                    it.copy(loading = false, level = done.first.level, dailyDate = done.first.dailyDate, completion = done.first, completedGrid = done.second)
+                }
+            }
+            is LoadResult.Discarded -> events.send(GameEvent.Leave)
         }
+    }
+
+    // ---- coach marks (US-024) ----
+
+    /** Shows the next unseen tip and records it as seen (a tip counts as seen once shown, PRD v1.3). */
+    private fun presentNextTip() {
+        val tip = CoachTip.next(coachMask)
+        if (tip != null) {
+            coachMask = coachMask or tip.bit
+            saveCoach()
+        }
+        _state.update { it.copy(coachTip = tip) }
+    }
+
+    /** "Next" on a tip (on the last one it reads "Got it"). */
+    fun onCoachNext() {
+        if (_state.value.coachTip != null) presentNextTip()
+    }
+
+    /** "Skip" ends all the tips for good; Back with a tip showing does the same (design §8.2). */
+    fun onCoachSkip() {
+        if (_state.value.coachTip == null) return
+        coachMask = CoachTip.ALL
+        saveCoach()
+        _state.update { it.copy(coachTip = null) }
+    }
+
+    private fun saveCoach() {
+        val store = coach ?: return
+        val mask = coachMask
+        viewModelScope.launch { store.save(mask) }
     }
 
     fun onAction(action: Action) {
@@ -127,6 +175,10 @@ class GameViewModel(
         }
         val change = BoardChange.of(++changeSeq, game, t.state, action, t.effects)
         if (t.state != game || change != null) _state.update { it.copy(game = t.state, change = change ?: it.change) }
+        ui.coachTip?.let { tip ->
+            if (t.state.status == Status.COMPLETED) _state.update { it.copy(coachTip = null) } // the rest wait for the next game
+            else if (CoachTip.done(tip, game, t.state)) presentNextTip()
+        }
         for (e in t.effects) {
             when (e) {
                 Effect.Persist -> if (t.state.status != Status.COMPLETED) persist(t.state)
@@ -144,7 +196,15 @@ class GameViewModel(
 
     /** Back priority (design §8.2): pause cover first, then the reducer (panel > erase > lock > selection > leave). */
     fun onBack() {
-        if (_state.value.paused) resume() else onAction(Action.Back)
+        val ui = _state.value
+        val game = ui.game
+        when {
+            ui.paused -> resume()
+            game == null -> if (ui.completion != null) events.trySend(GameEvent.Leave)
+            // A tip is only on screen with the pad (no panel); Back then dismisses it, counted as Skip (design §8.2).
+            ui.coachTip != null && game.status == Status.PLAYING && game.input.hint == null -> onCoachSkip()
+            else -> onAction(Action.Back)
+        }
     }
 
     fun onResume() {

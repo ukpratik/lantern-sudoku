@@ -12,3 +12,15 @@ data class GameRoute(val gameId: Long)
 
 @Serializable
 data object SettingsRoute
+
+/** Settings › Open-source licences (US-023). */
+@Serializable
+data object LicencesRoute
+
+/** Settings › Learn techniques (US-026). */
+@Serializable
+data object LearnRoute
+
+/** One technique's page; [technique] is the Technique enum name. */
+@Serializable
+data class LearnPageRoute(val technique: String)

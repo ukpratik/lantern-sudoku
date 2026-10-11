@@ -89,6 +89,12 @@ class GameRepository(
     /** True until the first game row exists (Home's first-run layout, design `play-tab-first-run`). */
     fun isFirstRun(): Flow<Boolean> = dao.gameCount().map { it == 0 }
 
+    /** US-025: completed puzzles of any kind. */
+    suspend fun completedCount(): Int = withContext(io) { dao.completedCount() }
+
+    /** US-024: games ever started (any status). */
+    suspend fun startedCount(): Int = withContext(io) { dao.startedCount() }
+
     suspend fun inProgress(level: Level): ContinueSummary? = withContext(io) { dao.inProgress(level.ordinal)?.toSummary() }
 
     /**
@@ -215,6 +221,16 @@ class GameRepository(
             daily = date?.let { dailyStats(dao.streakDays().first(), dao.daysPlayed().first(), today.refresh()) },
             share = date?.let { ShareFacts(it, level, row.elapsedMs, row.hints1 + row.hints2 + row.hints3, row.mistakes, row.boxFlags) },
         )
+    }
+
+    /**
+     * A completed game's summary and final grid, for a past daily opened again from the Daily tab (US-016). The
+     * "new best" flag is left off: that was news when it was solved, not now. Null unless the row is completed.
+     */
+    suspend fun completedView(gameId: Long): Pair<CompletionSummary, String>? = withContext(io) {
+        val summary = completion(gameId) ?: return@withContext null
+        val grid = dao.get(gameId)?.gridSummary ?: return@withContext null
+        summary.copy(newBest = false) to grid
     }
 
     suspend fun abandon(gameId: Long) {

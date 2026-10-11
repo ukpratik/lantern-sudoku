@@ -51,4 +51,35 @@ class SettingsRepositoryTest {
         assertThat(s.highContrast).isTrue()
         assertThat(s.largeDigits).isTrue()
     }
+
+    @Test
+    fun TC181_TC182_US023_theRestOfSettings_defaultsAndPersistence() = runTest {
+        val repo = tmp.repo(backgroundScope)
+        val d = repo.settings.first()
+        assertThat(d.showTimer).isTrue()
+        assertThat(d.haptics).isTrue()
+        assertThat(d.autoCleanupNotes).isTrue()
+        assertThat(d.highlightSameDigit).isTrue()
+        repo.setShowTimer(false)
+        repo.setHaptics(false)
+        repo.setAutoCleanupNotes(false)
+        repo.setHighlightSameDigit(false)
+        val s = repo.settings.first()
+        assertThat(s.showTimer).isFalse()
+        assertThat(s.haptics).isFalse()
+        assertThat(s.autoCleanupNotes).isFalse()
+        assertThat(s.rules.autoCleanup).isFalse() // TC-184: the reducer then keeps peer notes
+        assertThat(s.highlightSameDigit).isFalse()
+    }
+
+    @Test
+    fun appMarks_coachMarksFirstLaunchAndReviewPrompt() = runTest {
+        val repo = tmp.repo(backgroundScope)
+        assertThat(repo.marks()).isEqualTo(AppMarks())
+        repo.setCoachMarks(3)
+        repo.recordFirstLaunch(20_000)
+        repo.recordFirstLaunch(20_005) // recorded once: a later launch never moves the first day
+        repo.recordReviewPrompt(1_234L)
+        assertThat(repo.marks()).isEqualTo(AppMarks(coachMarks = 3, firstLaunchEpochDay = 20_000, lastReviewPromptAt = 1_234L))
+    }
 }

@@ -4,6 +4,7 @@ package io.github.ukpratik.lanternsudoku
 import android.app.Application
 import android.content.pm.ApplicationInfo
 import android.os.StrictMode
+import kotlinx.coroutines.launch
 
 class LanternApp : Application() {
     lateinit var container: AppContainer
@@ -20,5 +21,7 @@ class LanternApp : Application() {
         }
         container = AppContainer(this)
         container.settingsState // start reading settings now, off the main thread, for the first frame's theme
+        // US-025 "never on the first day": remember the first launch's date (once; DataStore, off the main thread).
+        container.appScope.launch { container.settingsRepository.recordFirstLaunch(container.today.refresh().toEpochDay()) }
     }
 }

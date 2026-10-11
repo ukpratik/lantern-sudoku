@@ -265,4 +265,64 @@
         <item quantity="one">%d second</item>
         <item quantity="other">%d seconds</item>
     </plurals>
+
+    <!-- Settings, the rest of US-023 (design settings; D-044) -->
+    <string name="settings_tidy_notes">Tidy notes automatically</string>
+    <string name="settings_tidy_notes_summary">Remove a digit from notes when you place it</string>
+    <string name="settings_highlight_same">Highlight same digit</string>
+    <string name="settings_show_timer">Show timer</string>
+    <string name="settings_feel_header">Feel</string>
+    <string name="settings_vibration">Vibration</string>
+    <string name="settings_licence">Licence</string>
+    <string name="settings_licence_summary">Free software under the GPL-3.0. The source code is on GitHub.</string>
+    <string name="settings_source_description">Licence, GPL-3.0. Opens the source code on GitHub in your browser</string>
+    <string name="settings_open_source">Open-source licences</string>
+    <string name="settings_open_source_summary">The libraries, fonts and icons Lantern Sudoku uses</string>
+    <string name="settings_learn">Learn techniques</string>
+    <string name="settings_learn_summary">How each hint technique works, with an example</string>
+    <string name="source_url" translatable="false">https://github.com/ukpratik/lantern-sudoku</string>
+    <string name="licences_title">Open-source licences</string>
+    <string name="licence_row">%1$s %2$s</string>
+    <string name="licence_close">Close</string>
+
+    <!-- Fill notes (US-009) -->
+    <string name="fill_notes">Fill notes</string>
+    <string name="fill_notes_hint">Every empty cell gets the digits that fit</string>
+    <string name="fill_notes_dialog_title">Replace your notes?</string>
+    <string name="fill_notes_dialog_body">Every empty cell gets all the digits that fit. You can undo this in one step.</string>
+    <string name="fill_notes_confirm">Fill notes</string>
+    <string name="announce_notes_filled">Notes filled in every empty cell</string>
+
+    <!-- Coach marks (US-024, design coach-mark; D-044) -->
+    <string name="coach_lock_title">Lock a number</string>
+    <string name="coach_lock_body">Tap a number with no cell selected, then tap cells to fill them. Tap it again to unlock.</string>
+    <string name="coach_notes_title">Take notes</string>
+    <string name="coach_notes_body">Turn on Notes to pencil in the digits a cell could hold. They tidy themselves when you place a digit.</string>
+    <string name="coach_hint_title">Ask for a hint</string>
+    <string name="coach_hint_body">Stuck? A hint shows where to look first, then why, and only then the digit.</string>
+    <string name="coach_progress">%1$d of %2$d</string>
+    <string name="coach_skip">Skip</string>
+    <string name="coach_skip_description">Skip tips</string>
+    <string name="coach_next">Next</string>
+    <string name="coach_done">Got it</string>
+    <string name="coach_announce">Tip %1$d of %2$d. %3$s. %4$s</string>
+
+    <!-- Past dailies (US-016, design daily-tab) -->
+    <string name="past_days_title">Past 7 days</string>
+    <string name="past_days_subtitle">Don\'t count toward the streak</string>
+    <string name="past_day_title">%1$s · %2$s</string>
+    <string name="past_day_done">Done · %1$s</string>
+    <string name="past_day_started">Started · %1$s</string>
+    <string name="past_day_not_played">Not played</string>
+    <string name="past_day_play">Play</string>
+    <string name="past_day_resume">Resume</string>
+    <string name="past_day_description">%1$s, %2$s, %3$s</string>
+    <string name="past_day_open_done">%1$s, %2$s, done in %3$s. Opens the summary</string>
+    <string name="strip_day_action">Show this day</string>
+
+    <!-- Learn (US-026) -->
+    <string name="learn_title">Learn techniques</string>
+    <string name="learn_intro">Every hint uses one of these. They go from the first Easy steps to Expert.</string>
+    <string name="learn_example">Example</string>
+    <string name="learn_example_description">Example board for %1$s. %2$s</string>
 </resources>

@@ -78,23 +78,28 @@ fun Controls(
     toolHeight: Dp = 48.dp,
     largeText: Boolean = false,
     iconOnlyTools: Boolean = false,
+    coach: CoachUi? = null,
 ) {
     Row(modifier.fillMaxWidth().height(height).padding(horizontal = 16.dp)) {
-        NumberPad(game, compact, colors, onAction, Modifier.weight(1f).fillMaxHeight())
+        NumberPad(game, compact, colors, onAction, Modifier.weight(1f).fillMaxHeight(), coach)
         Spacer(Modifier.width(12.dp))
-        if (compact) ToolGrid(game, onAction, toolHeight, largeText, iconOnlyTools) else ToolColumn(game, onAction, toolHeight, largeText)
+        if (compact) ToolGrid(game, onAction, toolHeight, largeText, iconOnlyTools, coach) else ToolColumn(game, onAction, toolHeight, largeText, coach)
     }
 }
 
+/** The key the "lock a number" tip points at: 5 as in the design, or the first digit that can still be locked. */
+private fun coachDigit(game: GameState): Int = (listOf(5) + (1..9)).firstOrNull { !game.isComplete(it) } ?: 5
+
 @Composable
-private fun NumberPad(game: GameState, compact: Boolean, colors: LanternColors, onAction: (Action) -> Unit, modifier: Modifier) {
+private fun NumberPad(game: GameState, compact: Boolean, colors: LanternColors, onAction: (Action) -> Unit, modifier: Modifier, coach: CoachUi?) {
     val gap = if (compact) 6.dp else 8.dp
+    val tipDigit = coachDigit(game)
     Column(modifier, verticalArrangement = Arrangement.spacedBy(gap)) {
         for (r in 0 until 3) {
             Row(Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(gap)) {
                 for (c in 0 until 3) {
                     val d = r * 3 + c + 1
-                    NumberKey(
+                    val key: @Composable (Modifier) -> Unit = { m -> NumberKey(
                         digit = d,
                         remaining = game.remaining(d),
                         locked = game.input.lock == d,
@@ -103,8 +108,11 @@ private fun NumberPad(game: GameState, compact: Boolean, colors: LanternColors, 
                         colors = colors,
                         onTap = { onAction(Action.TapDigit(d)) },
                         onLongPress = { onAction(Action.LongPressDigit(d)) },
-                        modifier = Modifier.weight(1f).fillMaxHeight(),
-                    )
+                        modifier = m,
+                    ) }
+                    Box(Modifier.weight(1f).fillMaxHeight()) {
+                        if (d == tipDigit) CoachAnchor(coach, CoachTip.LOCK) { key(Modifier.fillMaxSize()) } else key(Modifier.fillMaxSize())
+                    }
                 }
             }
         }
@@ -289,14 +297,24 @@ private fun tools(game: GameState): List<Tool> {
 }
 
 @Composable
-private fun ToolColumn(game: GameState, onAction: (Action) -> Unit, toolHeight: Dp, largeText: Boolean) {
+private fun ToolColumn(game: GameState, onAction: (Action) -> Unit, toolHeight: Dp, largeText: Boolean, coach: CoachUi?) {
     Column(Modifier.width(if (largeText) 112.dp else 100.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        for (t in tools(game)) ToolButton(t, stacked = largeText, height = toolHeight, onAction = onAction, modifier = Modifier.fillMaxWidth())
+        for (t in tools(game)) Anchored(t, coach) { ToolButton(t, stacked = largeText, height = toolHeight, onAction = onAction, modifier = Modifier.fillMaxWidth()) }
+    }
+}
+
+/** The Notes and Hint tools carry their coach-mark tips (US-024). */
+@Composable
+private fun Anchored(t: Tool, coach: CoachUi?, content: @Composable () -> Unit) {
+    when (t.tag) {
+        "notes" -> CoachAnchor(coach, CoachTip.NOTES, content)
+        "hint" -> CoachAnchor(coach, CoachTip.HINT, content)
+        else -> content()
     }
 }
 
 @Composable
-private fun ToolGrid(game: GameState, onAction: (Action) -> Unit, toolHeight: Dp, largeText: Boolean, iconOnly: Boolean) {
+private fun ToolGrid(game: GameState, onAction: (Action) -> Unit, toolHeight: Dp, largeText: Boolean, iconOnly: Boolean, coach: CoachUi?) {
     val all = tools(game)
     // D-037: on the smallest phones with large text the grid shows icons only (TalkBack keeps the full names and states),
     // so the pad keeps its 168 dp and the board and pad fit without scrolling (ISS-004).
@@ -304,11 +322,17 @@ private fun ToolGrid(game: GameState, onAction: (Action) -> Unit, toolHeight: Dp
         for (pair in all.take(4).chunked(2)) {
             Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                 for (t in pair) {
-                    ToolButton(t, stacked = true, height = toolHeight, onAction = onAction, modifier = Modifier.weight(1f), small = !largeText, iconOnly = iconOnly)
+                    Box(Modifier.weight(1f)) {
+                        Anchored(t, coach) {
+                            ToolButton(t, stacked = true, height = toolHeight, onAction = onAction, modifier = Modifier.fillMaxWidth(), small = !largeText, iconOnly = iconOnly)
+                        }
+                    }
                 }
             }
         }
-        ToolButton(all[4], stacked = largeText && !iconOnly, height = toolHeight, onAction = onAction, modifier = Modifier.fillMaxWidth(), iconOnly = iconOnly)
+        Anchored(all[4], coach) {
+            ToolButton(all[4], stacked = largeText && !iconOnly, height = toolHeight, onAction = onAction, modifier = Modifier.fillMaxWidth(), iconOnly = iconOnly)
+        }
     }
 }
 

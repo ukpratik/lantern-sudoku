@@ -52,6 +52,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import kotlinx.coroutines.delay
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -109,7 +110,14 @@ import io.github.ukpratik.lanternsudoku.ui.theme.TimerStyle
 
 
 @Composable
-fun GameScreen(vm: GameViewModel, onLeave: () -> Unit, onOpenGame: (Long) -> Unit, onOpenSettings: () -> Unit) {
+fun GameScreen(
+    vm: GameViewModel,
+    onLeave: () -> Unit,
+    onOpenGame: (Long) -> Unit,
+    onOpenSettings: () -> Unit,
+    /** Leaving the summary of a game just completed, for Home (US-025: the only moment a rate prompt may follow). */
+    onCompletionLeft: () -> Unit = {},
+) {
     val ui by vm.state.collectAsStateWithLifecycle()
     val view = LocalView.current
     val hapticsOn by rememberUpdatedState(ui.settings.haptics)
@@ -140,9 +148,26 @@ fun GameScreen(vm: GameViewModel, onLeave: () -> Unit, onOpenGame: (Long) -> Uni
     BackHandler { vm.onBack() }
 
     var confirmRestart by remember { mutableStateOf(false) }
+    var confirmFill by remember { mutableStateOf(false) }
     Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         val game = ui.game
-        if (game == null) {
+        val pastSummary = ui.completion
+        val pastGrid = ui.completedGrid
+        if (game == null && pastSummary != null && pastGrid != null) {
+            // US-016: a past daily already done, opened from the Daily tab, shows its summary (no rate prompt).
+            val context = LocalContext.current
+            BoxWithConstraints(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing), contentAlignment = Alignment.TopCenter) {
+                CompletionContent(
+                    gridSummary = pastGrid,
+                    summary = pastSummary,
+                    onClose = onLeave,
+                    onNewGame = vm::newGameSameLevel,
+                    onShare = { ShareText.share(context, it) },
+                    modifier = Modifier.width(minOf(maxWidth.value, BoardGeometry.MAX_COLUMN).dp),
+                    animate = false,
+                )
+            }
+        } else if (game == null) {
             Box(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing))
         } else {
             BoxWithConstraints(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing), contentAlignment = Alignment.TopCenter) {
@@ -170,7 +195,10 @@ fun GameScreen(vm: GameViewModel, onLeave: () -> Unit, onOpenGame: (Long) -> Uni
                     CompletionContent(
                         gridSummary = GameState.gridSummary(game),
                         summary = completion,
-                        onClose = onLeave,
+                        onClose = {
+                            onCompletionLeft()
+                            onLeave()
+                        },
                         onNewGame = vm::newGameSameLevel,
                         onShare = { ShareText.share(context, it) },
                         modifier = Modifier.width(geo.column.dp),
@@ -190,13 +218,33 @@ fun GameScreen(vm: GameViewModel, onLeave: () -> Unit, onOpenGame: (Long) -> Uni
                     chrome = chrome,
                     availableHeight = maxHeight.value,
                     onRestart = { confirmRestart = true },
+                    onFillNotes = {
+                        // US-009: ask first only when there are notes to replace (TC-076, TC-079).
+                        if ((0 until 81).any { game.notes(it) != 0 }) confirmFill = true else vm.onAction(Action.FillNotes)
+                    },
                     onOpenSettings = onOpenSettings,
                     onLeave = onLeave,
+                    coach = ui.coachTip?.let { CoachUi(it, vm::onCoachNext, vm::onCoachSkip) },
                 )
             }
         }
     }
     ui.continueOrNew?.let { ContinueOrNewSheet(it, vm::onContinueSaved, vm::onStartNewInstead, vm::onDismissContinueOrNew) }
+    if (confirmFill) {
+        AlertDialog(
+            onDismissRequest = { confirmFill = false },
+            title = { Text(stringResource(R.string.fill_notes_dialog_title)) },
+            text = { Text(stringResource(R.string.fill_notes_dialog_body)) },
+            confirmButton = {
+                TextButton(onClick = {
+                    confirmFill = false
+                    vm.onAction(Action.FillNotes)
+                }) { Text(stringResource(R.string.fill_notes_confirm)) }
+            },
+            dismissButton = { TextButton(onClick = { confirmFill = false }) { Text(stringResource(R.string.cancel)) } },
+            containerColor = MaterialTheme.colorScheme.surfaceContainer,
+        )
+    }
     if (confirmRestart) {
         AlertDialog(
             onDismissRequest = { confirmRestart = false },
@@ -228,8 +276,10 @@ private fun GameContent(
     chrome: GameChrome,
     availableHeight: Float,
     onRestart: () -> Unit,
+    onFillNotes: () -> Unit,
     onOpenSettings: () -> Unit,
     onLeave: () -> Unit,
+    coach: CoachUi?,
 ) {
     val k = LocalLanternColors.current
     val levelName = stringResource(level.label)
@@ -259,13 +309,17 @@ private fun GameContent(
             onBack = onLeave, // the bar arrow leaves; system Back follows the priority order (design §8.2)
             onPause = { if (paused) vm.resume() else vm.pause() },
             onRestart = onRestart,
+            onFillNotes = onFillNotes,
             onDebugNearSolved = vm::debugNearSolved,
         )
         if (geo.compact) Spacer(Modifier.height(GameChrome.COMPACT_GAP.dp))
         else StatusLine(status, game, settings, chrome.status, chrome.largeText)
         if (paused) {
             PauseCover(levelName, vm.elapsed.collectAsStateWithLifecycle().value, game.filledCount, vm::resume, onRestart, onOpenSettings, onLeave,
-                Modifier.fillMaxWidth().height((geo.board + bottom).dp), onDebugNearSolved = {
+                Modifier.fillMaxWidth().height((geo.board + bottom).dp), onFillNotes = {
+                    vm.resume()
+                    onFillNotes()
+                }, onDebugNearSolved = {
                     vm.resume()
                     vm.debugNearSolved()
                 })
@@ -274,9 +328,18 @@ private fun GameContent(
         val showMistakes = settings.showMistakes || game.overrides.showMistakes
         val highlights = Highlights.of(game, showMistakes = showMistakes, highlightSame = settings.highlightSameDigit)
         val hintView = HintView.of(game)
+        // BL-015 (design §7): Almost! rises after a 400 ms pause, so the last digit lands before the panel replaces the pad.
+        var almostDue by remember { mutableStateOf(false) }
+        LaunchedEffect(game.status) {
+            almostDue = false
+            if (game.status == Status.ALMOST) {
+                delay(ALMOST_DELAY_MS)
+                almostDue = true
+            }
+        }
         val panel = when (game.status) {
             Status.LIMIT -> PanelKind.LIMIT
-            Status.ALMOST -> PanelKind.ALMOST
+            Status.ALMOST -> if (almostDue) PanelKind.ALMOST else PanelKind.PAD
             Status.COMPLETED -> PanelKind.COMPLETED
             Status.PLAYING -> if (game.input.hint != null) PanelKind.HINT else PanelKind.PAD
         }
@@ -327,7 +390,7 @@ private fun GameContent(
                         if (saveFailed) SaveFailedBar(vm::retrySave)
                         Controls(game, geo.compact, k, vm::onAction, height = chrome.pad(geo.compact).dp,
                             toolHeight = chrome.tool(geo.compact).dp, largeText = chrome.largeText,
-                            iconOnlyTools = geo.compact && chrome.iconOnlyTools)
+                            iconOnlyTools = geo.compact && chrome.iconOnlyTools, coach = coach)
                         Spacer(Modifier.height(if (geo.compact) 8.dp else 12.dp))
                     }
                     PanelKind.HINT -> HintPanel(game, vm::onAction, slotMin)
@@ -396,6 +459,8 @@ private fun BoardAndSlot(
 
 private enum class PanelKind { PAD, HINT, LIMIT, ALMOST, COMPLETED }
 
+private const val ALMOST_DELAY_MS = 400L
+
 @Composable
 private fun GameBar(
     levelName: String,
@@ -409,6 +474,7 @@ private fun GameBar(
     onBack: () -> Unit,
     onPause: () -> Unit,
     onRestart: () -> Unit,
+    onFillNotes: () -> Unit,
     onDebugNearSolved: () -> Unit,
 ) {
     var menu by remember { mutableStateOf(false) }
@@ -453,6 +519,14 @@ private fun GameBar(
                     onClick = {
                         menu = false
                         onRestart()
+                    },
+                )
+                DropdownMenuItem(
+                    text = { Text(stringResource(R.string.fill_notes)) },
+                    leadingIcon = { Icon(painterResource(R.drawable.ic_edit), contentDescription = null) },
+                    onClick = {
+                        menu = false
+                        onFillNotes()
                     },
                 )
                 if (DebugHooks.ENABLED) {
@@ -674,6 +748,7 @@ private fun PauseCover(
     onOpenSettings: () -> Unit,
     onLeave: () -> Unit,
     modifier: Modifier,
+    onFillNotes: () -> Unit,
     onDebugNearSolved: (() -> Unit)? = null,
 ) {
     val k = LocalLanternColors.current
@@ -692,6 +767,7 @@ private fun PauseCover(
             border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)) {
             Column {
                 MenuRow(R.drawable.ic_restart, stringResource(R.string.restart_puzzle), stringResource(R.string.restart_hint), onRestart)
+                MenuRow(R.drawable.ic_edit, stringResource(R.string.fill_notes), stringResource(R.string.fill_notes_hint), onFillNotes)
                 MenuRow(R.drawable.ic_settings, stringResource(R.string.settings), null, onOpenSettings)
                 MenuRow(R.drawable.ic_home, stringResource(R.string.back_to_play), null, onLeave)
                 // Debug builds: the ⋮ menu's QA entry, for layouts without ⋮ (compact + large text, D-037).

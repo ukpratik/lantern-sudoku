@@ -19,6 +19,8 @@ coroutines = "1.11.0"
 serialization = "1.11.0"
 aboutLibraries = "15.2.0"
 profileinstaller = "1.4.1"
+# Play flavour only (US-025, ADR-008): the In-App Review API
+playReview = "2.0.2"
 # Baseline profile + startup macrobenchmark (:baselineprofile, NFR-001); device-only, never in the unit-test run
 benchmark = "1.5.0"
 uiautomator = "2.4.0"
@@ -43,6 +45,7 @@ androidx-room-compiler = { module = "androidx.room:room-compiler", version.ref =
 androidx-room-testing = { module = "androidx.room:room-testing", version.ref = "room" }
 kotlinx-coroutines-android = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-android", version.ref = "coroutines" }
 kotlinx-coroutines-test = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-test", version.ref = "coroutines" }
+play-review-ktx = { module = "com.google.android.play:review-ktx", version.ref = "playReview" }
 androidx-profileinstaller = { module = "androidx.profileinstaller:profileinstaller", version.ref = "profileinstaller" }
 androidx-benchmark-macro = { module = "androidx.benchmark:benchmark-macro-junit4", version.ref = "benchmark" }
 androidx-uiautomator = { module = "androidx.test.uiautomator:uiautomator", version.ref = "uiautomator" }

@@ -83,6 +83,8 @@ internal fun CompletionContent(
     onNewGame: () -> Unit,
     onShare: (ShareFacts) -> Unit,
     modifier: Modifier = Modifier,
+    /** False for a past daily's summary seen again (US-016): the board is shown settled, without the warm-up. */
+    animate: Boolean = true,
 ) {
     val res = LocalResources.current
     val level = stringResource(summary.level.label)
@@ -111,7 +113,7 @@ internal fun CompletionContent(
                 Text(stringResource(R.string.completed_title), fontFamily = DisplayFamily, fontSize = 34.sp, textAlign = TextAlign.Center,
                     modifier = Modifier.padding(top = 4.dp, bottom = 14.dp))
             }
-            GlowingBoard(gridSummary)
+            GlowingBoard(gridSummary, animate)
             Spacer(Modifier.height(18.dp))
             SummaryTiles(res, summary, level)
             summary.daily?.let {
@@ -219,9 +221,9 @@ private fun SummaryTiles(res: Resources, summary: CompletionSummary, level: Stri
  * 150 ms fade instead (TC-158).
  */
 @Composable
-private fun GlowingBoard(gridSummary: String) {
+private fun GlowingBoard(gridSummary: String, animate: Boolean) {
     val k = LocalLanternColors.current
-    val reduced = rememberReducedMotion()
+    val reduced = rememberReducedMotion() || !animate
     val warm = remember { Animatable(if (reduced) 1f else 0f) }
     val settle = remember { Animatable(if (reduced) 1f else 0f) }
     val fade = remember { Animatable(if (reduced) 0f else 1f) }

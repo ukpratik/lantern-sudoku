@@ -1,7 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 package io.github.ukpratik.lanternsudoku.feature.settings
 
+import android.content.Intent
+import androidx.core.net.toUri
 import androidx.annotation.DrawableRes
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -59,6 +62,8 @@ import io.github.ukpratik.lanternsudoku.data.ThemeMode
 import io.github.ukpratik.lanternsudoku.engine.game.HapticKind
 import io.github.ukpratik.lanternsudoku.feature.game.GameChrome.Companion.LARGE_TEXT
 import io.github.ukpratik.lanternsudoku.platform.Haptics
+import io.github.ukpratik.lanternsudoku.ui.components.quiet
+import io.github.ukpratik.lanternsudoku.ui.components.spokenAs
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
@@ -86,15 +91,32 @@ class SettingsViewModel(private val repository: SettingsRepository) : ViewModel(
     fun setMistakeLimit(limit: Int) {
         viewModelScope.launch { repository.setMistakeLimit(limit) }
     }
+
+    fun setTidyNotes(on: Boolean) {
+        viewModelScope.launch { repository.setAutoCleanupNotes(on) }
+    }
+
+    fun setHighlightSame(on: Boolean) {
+        viewModelScope.launch { repository.setHighlightSameDigit(on) }
+    }
+
+    fun setShowTimer(on: Boolean) {
+        viewModelScope.launch { repository.setShowTimer(on) }
+    }
+
+    fun setHaptics(on: Boolean) {
+        viewModelScope.launch { repository.setHaptics(on) }
+    }
 }
 
 /**
- * Settings (design `settings`), the M5 subset: Appearance (Theme, High contrast, Larger digits; US-020, US-021), Play
- * (Show mistakes, Mistake limit; US-010) and the About privacy line. The other US-023 toggles arrive in M6. Every change
- * applies instantly. PRD v1.3: the limit is only available while Show mistakes is on.
+ * Settings (design `settings`, US-023): Appearance (Theme, High contrast, Larger digits; US-020, US-021), Play (Show
+ * mistakes, Mistake limit, Tidy notes, Highlight same digit, Show timer; US-010, US-023), Feel (Vibration) and About
+ * (privacy line, licence and source, open-source licences, Learn techniques, version). Every change applies instantly
+ * and persists. PRD v1.3: the limit is only available while Show mistakes is on. Sounds stays hidden (D-020, D-044).
  */
 @Composable
-fun SettingsScreen(vm: SettingsViewModel, onBack: () -> Unit) {
+fun SettingsScreen(vm: SettingsViewModel, onBack: () -> Unit, onOpenLicences: () -> Unit = {}, onOpenLearn: () -> Unit = {}) {
     val s by vm.settings.collectAsStateWithLifecycle()
     val scheme = MaterialTheme.colorScheme
     val view = LocalView.current
@@ -192,7 +214,28 @@ fun SettingsScreen(vm: SettingsViewModel, onBack: () -> Unit) {
                             }
                         }
                     }
-                    HorizontalDivider(Modifier.padding(top = 20.dp, bottom = 8.dp), color = scheme.outlineVariant)
+                    Spacer(Modifier.height(12.dp))
+                    SwitchRow(R.drawable.ic_auto_fix, R.string.settings_tidy_notes, R.string.settings_tidy_notes_summary, s.autoCleanupNotes) {
+                        tick()
+                        vm.setTidyNotes(it)
+                    }
+                    SwitchRow(R.drawable.ic_select_all, R.string.settings_highlight_same, null, s.highlightSameDigit) {
+                        tick()
+                        vm.setHighlightSame(it)
+                    }
+                    SwitchRow(R.drawable.ic_timer, R.string.settings_show_timer, null, s.showTimer) {
+                        tick()
+                        vm.setShowTimer(it)
+                    }
+                    HorizontalDivider(Modifier.padding(vertical = 8.dp), color = scheme.outlineVariant)
+
+                    SectionHeader(R.string.settings_feel_header)
+                    SwitchRow(R.drawable.ic_vibration, R.string.settings_vibration, null, s.haptics) {
+                        // The tick confirms turning it on; turning it off is silent (design §8: gated by this setting).
+                        if (it) Haptics.perform(view, HapticKind.TICK)
+                        vm.setHaptics(it)
+                    }
+                    HorizontalDivider(Modifier.padding(vertical = 8.dp), color = scheme.outlineVariant)
 
                     SectionHeader(R.string.settings_about_header)
                     Row(Modifier.fillMaxWidth().heightIn(min = 64.dp).padding(vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -203,6 +246,15 @@ fun SettingsScreen(vm: SettingsViewModel, onBack: () -> Unit) {
                                 color = scheme.onSurfaceVariant)
                         }
                     }
+                    val context = LocalContext.current
+                    val sourceUrl = stringResource(R.string.source_url)
+                    val sourceDescription = stringResource(R.string.settings_source_description)
+                    LinkRow(R.drawable.ic_code, R.string.settings_licence, R.string.settings_licence_summary, sourceDescription) {
+                        // ACTION_VIEW hands the link to the browser; the app itself never touches the network (NFR-004).
+                        runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, sourceUrl.toUri())) }
+                    }
+                    LinkRow(R.drawable.ic_description, R.string.settings_open_source, R.string.settings_open_source_summary, null, onOpenLicences)
+                    LinkRow(R.drawable.ic_school, R.string.settings_learn, R.string.settings_learn_summary, null, onOpenLearn)
                     Text(
                         stringResource(R.string.settings_version, appVersion()),
                         style = MaterialTheme.typography.bodyMedium,
@@ -233,9 +285,31 @@ private fun RowIcon(@DrawableRes icon: Int) {
         modifier = Modifier.padding(end = 16.dp).size(24.dp))
 }
 
+/** A row that opens something (a screen, or the browser): the whole row is one 64 dp target with a chevron. */
+@Composable
+private fun LinkRow(@DrawableRes icon: Int, title: Int, summary: Int, description: String?, onClick: () -> Unit) {
+    val scheme = MaterialTheme.colorScheme
+    Row(
+        Modifier.fillMaxWidth().heightIn(min = 64.dp).clickable(role = Role.Button, onClick = onClick)
+            .then(if (description != null) Modifier.spokenAs(description) else Modifier)
+            .padding(vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        RowIcon(icon)
+        // With its own [description], the row is read once as that (the visible texts stay quiet for TalkBack).
+        val textModifier = if (description != null) quiet else Modifier
+        Column(Modifier.weight(1f)) {
+            Text(stringResource(title), style = MaterialTheme.typography.bodyLarge, modifier = textModifier)
+            Text(stringResource(summary), style = MaterialTheme.typography.bodyMedium, color = scheme.onSurfaceVariant, modifier = textModifier)
+        }
+        Icon(painterResource(R.drawable.ic_chevron_right), contentDescription = null, tint = scheme.onSurfaceVariant,
+            modifier = Modifier.padding(start = 8.dp).size(24.dp))
+    }
+}
+
 /** One switch row: the whole row is the target; TalkBack reads "title, summary, switch, on/off". */
 @Composable
-private fun SwitchRow(@DrawableRes icon: Int, title: Int, summary: Int, checked: Boolean, onChange: (Boolean) -> Unit) {
+private fun SwitchRow(@DrawableRes icon: Int, title: Int, summary: Int?, checked: Boolean, onChange: (Boolean) -> Unit) {
     val scheme = MaterialTheme.colorScheme
     Row(
         Modifier.fillMaxWidth().heightIn(min = 64.dp).toggleable(value = checked, role = Role.Switch, onValueChange = onChange)
@@ -245,7 +319,7 @@ private fun SwitchRow(@DrawableRes icon: Int, title: Int, summary: Int, checked:
         RowIcon(icon)
         Column(Modifier.weight(1f)) {
             Text(stringResource(title), style = MaterialTheme.typography.bodyLarge)
-            Text(stringResource(summary), style = MaterialTheme.typography.bodyMedium, color = scheme.onSurfaceVariant)
+            if (summary != null) Text(stringResource(summary), style = MaterialTheme.typography.bodyMedium, color = scheme.onSurfaceVariant)
         }
         Spacer(Modifier.width(12.dp))
         Switch(

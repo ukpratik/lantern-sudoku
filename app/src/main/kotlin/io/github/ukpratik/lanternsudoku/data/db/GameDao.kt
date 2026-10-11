@@ -36,6 +36,14 @@ interface GameDao {
     @Query("SELECT COUNT(*) FROM games")
     fun gameCount(): Flow<Int>
 
+    /** US-025: completed puzzles of any kind (the rate prompt waits for 5). */
+    @Query("SELECT COUNT(*) FROM games WHERE status = 1")
+    suspend fun completedCount(): Int
+
+    /** US-024: how many games were ever started (coach marks are for the first game after install). */
+    @Query("SELECT COUNT(*) FROM games")
+    suspend fun startedCount(): Int
+
     @Query("SELECT puzzle_id, MAX(started_at) AS last_started FROM games WHERE kind = 0 AND level = :level GROUP BY puzzle_id")
     suspend fun playedSet(level: Int): List<PlayedRow>
 

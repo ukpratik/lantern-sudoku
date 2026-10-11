@@ -189,4 +189,22 @@ class DailyRepositoryTest {
         ).inOrder()
         assertThat(w.map { it.state }.toSet()).containsExactly(DayState.NOT_PLAYED)
     }
+
+    /** US-016 (TC-147): a past daily from the list counts toward days played and stats, not the streak; once done it reopens as its summary. */
+    @Test
+    fun TC147_pastDailyPlayedFromTheList_countsDaysPlayedNotStreak_andReopensAsItsSummary() = runBlocking<Unit> {
+        val monday = thursday.minusDays(3)
+        val id = repo.openOrCreateDaily(monday)!!
+        assertThat(repo.completedView(id)).isNull() // not done yet: nothing to show but the game
+        complete(id)
+        assertThat(repo.dailyStats(today.date).first()).isEqualTo(DailyStats(current = 0, best = 0, daysPlayed = 1))
+        assertThat(repo.stats(today.date).first().of(Level.EASY).completed).isEqualTo(1)
+        val (summary, grid) = repo.completedView(id)!!
+        assertThat(summary.dailyDate).isEqualTo(monday)
+        assertThat(summary.newBest).isFalse() // that was news when it was solved
+        assertThat(summary.share).isNotNull()
+        assertThat(grid).hasLength(81)
+        assertThat(repo.openOrCreateDaily(monday)).isNull() // completed: no second row (TC-135)
+        assertThat(week()[3].gameId).isEqualTo(id) // the list row knows which game to open
+    }
 }

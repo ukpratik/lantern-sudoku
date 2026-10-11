@@ -44,7 +44,7 @@ android {
         }
     }
 
-    // ADR-008: identical apps apart from the review prompter (added in M6). The release build type has no
+    // ADR-008: identical apps apart from the review prompter (US-025: play = In-App Review, fdroid = no-op). The release build type has no
     // signing config, so each flavour's config applies to release only; debug keeps the debug key.
     flavorDimensions += "store"
     productFlavors {
@@ -147,6 +147,8 @@ dependencies {
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.androidx.profileinstaller)
     baselineProfile(project(":baselineprofile"))
+    // ADR-008: proprietary code only in the play flavour (US-025 review prompt); fdroid gets a no-op.
+    "playImplementation"(libs.play.review.ktx)
 
     testImplementation(libs.junit)
     testImplementation(libs.truth)

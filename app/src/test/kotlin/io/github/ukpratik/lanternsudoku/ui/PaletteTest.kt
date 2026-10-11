@@ -64,6 +64,38 @@ class PaletteTest {
         for (p in Palettes.all) checkContrast(p.lantern)
     }
 
+    /**
+     * M6 screens (1.0.1) in all four themes: the colour pairs they draw text with meet WCAG AA, and their sources use
+     * theme roles only (no hard-coded colour), so a theme switch reaches them like every other screen (US-020, R-013).
+     */
+    @Test
+    fun m6ScreensUseThemeRolesWithReadableText() {
+        for ((p, theme) in Palettes.all.zip(listOf("light", "dark", "hc-light", "hc-dark"))) {
+            val c = p.colorScheme
+            val pairs = mapOf(
+                "coach tip text" to (c.inverseOnSurface to c.inverseSurface),
+                "coach tip actions" to (c.inversePrimary to c.inverseSurface),
+                "past day row" to (c.onSurface to c.surfaceContainer),
+                "past day status" to (c.onSurfaceVariant to c.surfaceContainer),
+                "past day marked" to (c.onSurface to c.secondaryContainer),
+                "settings / learn / licences text" to (c.onSurface to c.background),
+                "settings summaries" to (c.onSurfaceVariant to c.background),
+                "dialogs (fill notes, licence)" to (c.onSurface to c.surfaceContainer),
+            )
+            for ((what, pair) in pairs) assertWithMessage("$theme $what").that(contrast(pair.first, pair.second)).isAtLeast(4.5)
+            // "Play" / "Resume" on a past row: large-ish label text, held to 3:1 like the design's accent labels (§1.3).
+            assertWithMessage("$theme past day action").that(contrast(c.primary, c.surfaceContainer)).isAtLeast(3.0)
+        }
+        val m6 = listOf(
+            "feature/game/CoachMarks.kt", "feature/home/DailyTab.kt", "feature/settings/SettingsScreen.kt",
+            "feature/settings/LicencesScreen.kt", "feature/learn/Learn.kt",
+        )
+        for (f in m6) {
+            val src = java.io.File("src/main/kotlin/io/github/ukpratik/lanternsudoku/$f").readText()
+            assertWithMessage("$f has a hard-coded colour").that(Regex("""Color\(0x""").containsMatchIn(src)).isFalse()
+        }
+    }
+
     private fun checkContrast(k: io.github.ukpratik.lanternsudoku.ui.theme.LanternColors) {
         val fills = listOf(k.cell, k.peer, k.sameDigit, k.selected, k.conflict)
         for (bg in fills) {

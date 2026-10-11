@@ -23,6 +23,24 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.semantics.onClick
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.testTag
+import io.github.ukpratik.lanternsudoku.ui.components.SHORT_DATE
+import io.github.ukpratik.lanternsudoku.ui.components.spokenElapsed
+import kotlinx.coroutines.launch
+import io.github.ukpratik.lanternsudoku.ui.components.quiet
+import io.github.ukpratik.lanternsudoku.ui.components.spokenAs
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -55,12 +73,18 @@ import io.github.ukpratik.lanternsudoku.ui.theme.LocalLanternColors
 import java.time.LocalDate
 
 /**
- * Daily tab (US-014, US-015; design daily-tab): today's ink card, the streak line and the 7-day strip (today + the 6
- * previous dates, D-028). Playing past days from the strip is US-016 (M6); in 1.0 the strip shows their state only.
+ * Daily tab (US-014, US-015, US-016; design daily-tab): today's ink card, the streak line, the 7-day strip (today + the
+ * 6 previous dates, D-028) and the Past 7 days list. A past day in the strip scrolls to its row and marks it; a row
+ * plays or resumes that daily, or opens its summary once done. Past dailies count toward days played and stats, never
+ * the streak (the list's subtitle says so once).
  */
 @Composable
-internal fun DailyTab(state: DailyUiState, onPlay: (LocalDate) -> Unit, onShare: (ShareFacts) -> Unit) {
-    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
+internal fun DailyTab(state: DailyUiState, onPlay: (LocalDate) -> Unit, onShare: (ShareFacts) -> Unit, onOpenGame: (Long) -> Unit = {}) {
+    val scroll = rememberScrollState()
+    val scope = rememberCoroutineScope()
+    var marked by remember { mutableStateOf<LocalDate?>(null) }
+    val requesters = remember { HashMap<LocalDate, BringIntoViewRequester>() }
+    Column(Modifier.fillMaxSize().verticalScroll(scroll)) {
         Text(
             stringResource(R.string.daily_title), style = MaterialTheme.typography.headlineSmall,
             modifier = Modifier.fillMaxWidth().height(64.dp).padding(start = 20.dp, top = 18.dp).semantics { heading() },
@@ -76,10 +100,90 @@ internal fun DailyTab(state: DailyUiState, onPlay: (LocalDate) -> Unit, onShare:
                 Column(Modifier.fillMaxWidth().padding(16.dp)) {
                     StreakLine(state.stats)
                     Spacer(Modifier.height(14.dp))
-                    WeekStrip(state.week)
+                    WeekStrip(state.week) { day ->
+                        if (day == state.week.last()) {
+                            marked = null
+                            scope.launch { scroll.animateScrollTo(0) }
+                        } else {
+                            marked = day.date
+                            requesters[day.date]?.let { r -> scope.launch { r.bringIntoView() } }
+                        }
+                    }
+                }
+            }
+            Spacer(Modifier.height(20.dp))
+            val past = state.week.dropLast(1).reversed() // yesterday first (design daily-tab)
+            if (past.isNotEmpty()) {
+                Text(stringResource(R.string.past_days_title), style = MaterialTheme.typography.titleMedium,
+                    modifier = Modifier.padding(horizontal = 4.dp).semantics { heading() })
+                Text(stringResource(R.string.past_days_subtitle), style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(start = 4.dp, end = 4.dp, bottom = 8.dp))
+                Surface(
+                    shape = RoundedCornerShape(24.dp), color = MaterialTheme.colorScheme.surfaceContainer,
+                    contentColor = MaterialTheme.colorScheme.onSurface, border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                ) {
+                    Column(Modifier.fillMaxWidth()) {
+                        past.forEachIndexed { i, day ->
+                            PastDayRow(
+                                day = day,
+                                marked = marked == day.date,
+                                onOpen = {
+                                    val id = day.gameId
+                                    if (day.state == DayState.DONE && id != null) onOpenGame(id) else onPlay(day.date)
+                                },
+                                modifier = Modifier.bringIntoViewRequester(remember(day.date) { BringIntoViewRequester() }.also { requesters[day.date] = it }),
+                            )
+                            if (i < past.lastIndex) HorizontalDivider(Modifier.padding(horizontal = 16.dp), color = MaterialTheme.colorScheme.outlineVariant)
+                        }
+                    }
                 }
             }
             Spacer(Modifier.height(16.dp))
+        }
+    }
+}
+
+/**
+ * One past daily (design daily-tab): day dot · "Wed 14 Oct · Medium" · "Done · 9:12" / "Started · 6:15" / "Not played",
+ * then a chevron (done: opens the summary), Resume or Play. The whole row is one target; [marked] after a strip tap.
+ */
+@Composable
+private fun PastDayRow(day: DailyDay, marked: Boolean, onOpen: () -> Unit, modifier: Modifier) {
+    val scheme = MaterialTheme.colorScheme
+    val level = stringResource(day.level.label)
+    val date = day.date.format(SHORT_DATE)
+    val status = when (day.state) {
+        DayState.DONE -> stringResource(R.string.past_day_done, formatElapsed(day.elapsedMs))
+        DayState.STARTED -> stringResource(R.string.past_day_started, formatElapsed(day.elapsedMs))
+        DayState.NOT_PLAYED -> stringResource(R.string.past_day_not_played)
+    }
+    val res = LocalResources.current
+    val spoken = if (day.state == DayState.DONE) {
+        stringResource(R.string.past_day_open_done, day.date.format(LONG_DATE), level, spokenElapsed(res, day.elapsedMs))
+    } else {
+        val action = stringResource(if (day.state == DayState.STARTED) R.string.past_day_resume else R.string.past_day_play)
+        stringResource(R.string.past_day_description, day.date.format(LONG_DATE), level, "$status. $action")
+    }
+    Row(
+        modifier.fillMaxWidth().heightIn(min = 68.dp)
+            .then(if (marked) Modifier.background(scheme.secondaryContainer) else Modifier)
+            .clickable(role = Role.Button, onClick = onOpen)
+            .spokenAs(spoken)
+            .semantics { testTag = "past-${day.date}" }
+            .padding(horizontal = 16.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        DayDot(day.state, today = false, size = 26.dp)
+        Spacer(Modifier.width(14.dp))
+        Column(Modifier.weight(1f)) {
+            Text(stringResource(R.string.past_day_title, date, level), style = MaterialTheme.typography.bodyLarge, modifier = quiet)
+            Text(status, style = MaterialTheme.typography.bodyMedium, color = scheme.onSurfaceVariant, modifier = quiet)
+        }
+        Spacer(Modifier.width(8.dp))
+        when (day.state) {
+            DayState.DONE -> Icon(painterResource(R.drawable.ic_chevron_right), contentDescription = null, tint = scheme.onSurfaceVariant)
+            DayState.STARTED -> Text(stringResource(R.string.past_day_resume), style = MaterialTheme.typography.labelLarge, color = scheme.primary, modifier = quiet)
+            DayState.NOT_PLAYED -> Text(stringResource(R.string.past_day_play), style = MaterialTheme.typography.labelLarge, color = scheme.primary, modifier = quiet)
         }
     }
 }
@@ -131,9 +235,12 @@ private fun TodayCard(day: DailyDay, typicalMs: Long?, onPlay: (LocalDate) -> Un
     }
 }
 
-/** The 7-day strip, oldest first, today last: weekday initial, day dot by shape, day of month (design daily-tab). */
+/**
+ * The 7-day strip, oldest first, today last: weekday initial, day dot by shape, day of month (design daily-tab). Each
+ * day is a 48 dp target (US-016): a past day jumps to its row in Past 7 days, today to today's card.
+ */
 @Composable
-private fun WeekStrip(week: List<DailyDay>) {
+private fun WeekStrip(week: List<DailyDay>, onDay: (DailyDay) -> Unit) {
     val res = LocalResources.current
     val label = stringResource(R.string.last_7_days)
     Row(Modifier.fillMaxWidth().semantics { contentDescription = label }, horizontalArrangement = Arrangement.SpaceBetween) {
@@ -148,8 +255,15 @@ private fun WeekStrip(week: List<DailyDay>) {
             )
             val level = res.getString(day.level.label)
             val spoken = res.getString(if (today) R.string.strip_today else R.string.strip_day, day.date.format(LONG_DATE), level, stateText)
+            val action = res.getString(R.string.strip_day_action)
             Column(
-                Modifier.width(42.dp).clearAndSetSemantics { contentDescription = spoken },
+                Modifier.width(42.dp).heightIn(min = 48.dp).clip(RoundedCornerShape(12.dp)).clickable(role = Role.Button, onClickLabel = action) { onDay(day) }
+                    .clearAndSetSemantics {
+                        contentDescription = spoken
+                        role = Role.Button
+                        testTag = "strip-${day.date}"
+                        onClick(label = action) { onDay(day); true }
+                    },
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(5.dp),
             ) {
