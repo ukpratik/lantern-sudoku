@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
-# Publishes site/ (home page + privacy policy) to https://ukpratik.github.io/lantern-sudoku/ (ADR-009).
-# Manual only until release: Pages needs the repo public, which is a user decision at 1.0. Then add
+# Publishes site/ (home page + privacy policy) to https://ukpratik.github.io/lantern-sudoku/.
+# Run manually (Actions → Pages → Run workflow). To publish on every change to site/, add
 #   push: { branches: [main], paths: ["site/**", ".github/workflows/pages.yml"] }
 name: Pages
 
