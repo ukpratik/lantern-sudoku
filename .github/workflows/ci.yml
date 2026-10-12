@@ -30,7 +30,7 @@ jobs:
         with:
           packages: "platforms;android-37.0 build-tools;36.0.0"
 
-      - uses: gradle/actions/setup-gradle@v4
+      - uses: gradle/actions/setup-gradle@v6
 
       - name: All gates (tests, bank validator, lint, release builds + licences, permissions, size)
         run: scripts/ci.sh
