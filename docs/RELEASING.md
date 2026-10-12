@@ -114,10 +114,22 @@ Users can compare the GitHub APK they downloaded against the release-key fingerp
 
 Prerequisites: the repository is public; tag `v1.0.1` exists; `fastlane/metadata/android/en-US/` has the texts and the images (`icon.png`, `featureGraphic.png`, `phoneScreenshots/`); the metadata file is in `fdroid/io.github.ukpratik.lanternsudoku.yml`.
 
-1. Check locally with fdroidserver against the public tag: `fdroid lint`, `fdroid rewritemeta`, `fdroid build -v -l io.github.ukpratik.lanternsudoku`. The built APK must pass the permission gate (no permissions).
-2. Fork https://gitlab.com/fdroid/fdroiddata and add `metadata/io.github.ukpratik.lanternsudoku.yml` (the same content as `fdroid/…yml` here) on a branch named `io.github.ukpratik.lanternsudoku`.
-3. Open a merge request with the **App inclusion** template. Checklist answers: public source, GPL-3.0-or-later; no non-free dependencies in the `fdroid` flavour; no tracking, no ads and no network permission (no anti-features); builds with the Gradle wrapper and the Android SDK only; the puzzle bank (`bank/v1/`) is plain text and can be regenerated with `tools/generator`.
-4. Answer reviewers in the merge request. After the merge, the app appears in F-Droid in about a week.
+The metadata uses the category **Puzzle Game** (fdroiddata's `config/categories.yml` no longer has a plain "Games"; `fdroid lint` rejects it).
+
+1. In `fdroid/io.github.ukpratik.lanternsudoku.yml`, replace `REPLACE_WITH_V1.0.1_COMMIT_HASH` with the full hash from `git rev-parse 'v1.0.1^{commit}'` (after any history rewrite, use the hash in the public repository). Commit that change.
+2. Check locally with fdroidserver (Docker; on Apple silicon add `--platform linux/amd64`). Make a working folder with `metadata/io.github.ukpratik.lanternsudoku.yml` and fdroiddata's `config/categories.yml`, run `git init` and commit in it (this fdroidserver needs the data folder to be a git repository), then:
+   ```bash
+   IMG=registry.gitlab.com/fdroid/docker-executable-fdroidserver:master
+   docker run --rm -v "$PWD":/repo $IMG lint io.github.ukpratik.lanternsudoku
+   docker run --rm -v "$PWD":/repo $IMG rewritemeta io.github.ukpratik.lanternsudoku   # must change nothing
+   docker run --rm -v "$PWD":/repo $IMG scanner -v io.github.ukpratik.lanternsudoku    # "0 problems found"
+   docker run --rm -v "$PWD":/repo $IMG build -v -l io.github.ukpratik.lanternsudoku
+   scripts/check-permissions.sh unsigned/io.github.ukpratik.lanternsudoku_10001.apk
+   ```
+   Expected: lint silent, scanner "0 problems found" (it prints warnings for the five bundled `.ttf` fonts; those are fonts, built reproducibly from google/fonts as described in `app/fonts/README.md`, so no `scanignore` is needed), the build produces `io.github.ukpratik.lanternsudoku_10001.apk`, and the APK requests no permission except the app-private `DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION` and contains no `com/google/android/play` classes.
+3. Fork https://gitlab.com/fdroid/fdroiddata and add `metadata/io.github.ukpratik.lanternsudoku.yml` (the same content as `fdroid/…yml` here) on a branch named `io.github.ukpratik.lanternsudoku`.
+4. Open a merge request with the **App inclusion** template. Checklist answers: public source, GPL-3.0-or-later; no non-free dependencies in the `fdroid` flavour; no tracking, no ads and no network permission (no anti-features); builds with the Gradle wrapper and the Android SDK only; the puzzle bank (`bank/v1/`) is plain text and can be regenerated with `tools/generator`.
+5. Answer reviewers in the merge request. After the merge, the app appears in F-Droid in about a week. Then change "F-Droid: coming soon" in `README.md` and `site/index.html` to the package link (https://f-droid.org/packages/io.github.ukpratik.lanternsudoku/).
 
 ## Google Play: first release (one time, after the organisation developer account is verified)
 

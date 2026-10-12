@@ -1,0 +1,27 @@
+Categories:
+  - Puzzle Game
+License: GPL-3.0-or-later
+AuthorName: Pratik Ukey
+AuthorEmail: pratikuk99@gmail.com
+WebSite: https://ukpratik.github.io/lantern-sudoku/
+SourceCode: https://github.com/ukpratik/lantern-sudoku
+IssueTracker: https://github.com/ukpratik/lantern-sudoku/issues
+Changelog: https://github.com/ukpratik/lantern-sudoku/releases
+
+AutoName: Lantern Sudoku
+
+RepoType: git
+Repo: https://github.com/ukpratik/lantern-sudoku.git
+
+Builds:
+  - versionName: 1.0.1
+    versionCode: 10001
+    commit: REPLACE_WITH_V1.0.1_COMMIT_HASH
+    subdir: app
+    gradle:
+      - fdroid
+
+AutoUpdateMode: Version
+UpdateCheckMode: Tags
+CurrentVersion: 1.0.1
+CurrentVersionCode: 10001
