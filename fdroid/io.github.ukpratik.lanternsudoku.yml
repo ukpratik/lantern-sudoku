@@ -16,7 +16,7 @@ Repo: https://github.com/ukpratik/lantern-sudoku.git
 Builds:
   - versionName: 1.0.1
     versionCode: 10001
-    commit: REPLACE_WITH_V1.0.1_COMMIT_HASH
+    commit: 40390792c864996869c700a6576bb2d97c73824e
     subdir: app
     gradle:
       - fdroid
