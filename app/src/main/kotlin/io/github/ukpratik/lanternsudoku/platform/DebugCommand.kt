@@ -4,7 +4,7 @@ package io.github.ukpratik.lanternsudoku.platform
 import io.github.ukpratik.lanternsudoku.engine.model.PuzzleId
 
 /**
- * QA hooks (qa-handover "Debug hooks"), parsed from launch-intent extras by the debug build's [DebugHooks] only.
+ * QA hooks (see the debug build's DebugHooks), parsed from launch-intent extras by the debug build's [DebugHooks] only.
  * The release build's [DebugHooks] never returns one.
  */
 sealed interface DebugCommand {

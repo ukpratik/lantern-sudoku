@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
-# Every gate lives in scripts/ci.sh, so CI and a local run are identical (ADR-009, LLD §8).
+# Every gate lives in scripts/ci.sh, so CI and a local run are identical .
 name: CI
 
 on:

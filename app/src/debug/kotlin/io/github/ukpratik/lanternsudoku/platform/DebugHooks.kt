@@ -11,7 +11,7 @@ import io.github.ukpratik.lanternsudoku.engine.model.PuzzleId
 import java.time.LocalDate
 
 /**
- * Debug-build QA hooks (qa-handover "Debug hooks"; documented in 06-build/handover.md). The release source set has a
+ * Debug-build QA hooks (also listed in CONTRIBUTING.md). The release source set has a
  * no-op twin, so none of this ships. `--activity-single-top` makes the hooks work on a running app too (BL-016); without
  * it they only work on a cold start.
  *

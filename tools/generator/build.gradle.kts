@@ -33,5 +33,5 @@ tasks.named<Test>("test") {
     systemProperty("lantern.bank", bankDir.asFile.path)
 }
 
-// `./gradlew :tools:generator:run --args="report"` runs from the repo root so default paths (bank/v1, product/...) resolve.
+// `./gradlew :tools:generator:run --args="report"` runs from the repo root so default paths (bank/v1, build/) resolve.
 tasks.named<JavaExec>("run") { workingDir = rootProject.projectDir }

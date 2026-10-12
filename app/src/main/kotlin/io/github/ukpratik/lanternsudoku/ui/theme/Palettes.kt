@@ -11,8 +11,8 @@ import androidx.compose.ui.unit.dp
 data class LanternPalette(val dark: Boolean, val highContrast: Boolean, val colorScheme: ColorScheme, val lantern: LanternColors)
 
 /**
- * The four palettes (US-020), generated from `product/04-design/final/assets/tokens.css` with the role map of
- * design-system §2: every M3 role is set, so nothing falls back to baseline purple. No dynamic colour, ever.
+ * The four palettes (US-020), generated from `design/tokens.css` (repo root) with the role map in
+ * PaletteTest (`ROLE_TOKENS`): every M3 role is set, so nothing falls back to baseline purple. No dynamic colour, ever.
  * Regenerate rather than hand-edit when the tokens change.
  */
 object Palettes {

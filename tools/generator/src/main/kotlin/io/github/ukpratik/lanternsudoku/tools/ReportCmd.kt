@@ -25,7 +25,7 @@ object ReportCmd {
     fun run(args: List<String>, out: (String) -> Unit): Int {
         val opts = Options.parse(args)
         val dir = bankDir(opts.positional.firstOrNull())
-        val outFile = File(opts.value("out") ?: "product/06-build/m1-hand-check.md")
+        val outFile = File(opts.value("out") ?: "build/m1-hand-check.md")
         val perLevel = opts.int("sample") ?: 20
         val replayN = opts.int("replay") ?: Int.MAX_VALUE
         val records = BankFile.ALL.associateWith { bf -> BankCodec.decodeAll(bf.bytes(dir)) }

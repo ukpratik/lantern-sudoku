@@ -163,7 +163,7 @@ class PaletteTest {
 
     /** Reads the hex colours of one theme block straight from the design's tokens.css (the source of truth). */
     private object Tokens {
-        private val css = java.io.File("../product/04-design/final/assets/tokens.css").readText()
+        private val css = java.io.File("../design/tokens.css").readText()
 
         fun of(theme: String): Map<String, Color> {
             val selector = if (theme == "light") ":root, [data-theme=\"light\"] {" else "[data-theme=\"$theme\"] {"

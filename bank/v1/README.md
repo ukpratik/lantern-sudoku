@@ -17,7 +17,7 @@ Committed source (ADR-004). Do not edit by hand: CI fails on any change to a fro
 
 ```bash
 ./gradlew :tools:generator:validateBank                          # what CI runs (about 1 s on 14 cores)
-./gradlew :tools:generator:run --args="report"                   # distribution, hint replay, product/06-build/m1-hand-check.md
+./gradlew :tools:generator:run --args="report"                   # distribution, hint replay, build/m1-hand-check.md
 ./gradlew :tools:generator:run --args="generate --newgame 3000"  # APPEND New-game records up to 3,000 per level
 ./gradlew :tools:generator:run --args="freeze bank/v1 1.0.0"     # record frozen prefixes at a release
 ```
