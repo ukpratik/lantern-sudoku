@@ -17,7 +17,7 @@ room = "2.8.5"
 datastore = "1.2.1"
 coroutines = "1.11.0"
 serialization = "1.11.0"
-aboutLibraries = "15.2.0"
+aboutLibraries = "15.3.0"
 profileinstaller = "1.4.1"
 # Play flavour only (US-025, ADR-008): the In-App Review API
 playReview = "2.0.2"
