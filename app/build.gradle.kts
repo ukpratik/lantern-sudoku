@@ -12,13 +12,13 @@ android {
     namespace = "io.github.ukpratik.lanternsudoku"
 
     defaultConfig {
-        applicationId = "io.github.ukpratik.lanternsudoku" // permanent after first publication (ADR-010)
+        applicationId = "io.github.ukpratik.lanternsudoku" // F-Droid and GitHub; the Play flavour adds ".play" (ADR-015)
         // versionCode = MAJOR × 10000 + MINOR × 100 + PATCH (ADR-012). 1.0.0's candidates sat just below it
         // (10000 − 100 + N = 9901..9903, D-035). A patch has no free code below it (1.0.0 = 10000, 1.0.1 = 10001), so
         // 1.0.1's candidates use 1.0.1's own code: they upgrade 1.0.0, are never published, and the final 1.0.1 is
         // built with the same code (D-044).
-        versionCode = 10001
-        versionName = "1.0.1"
+        versionCode = 10002
+        versionName = "1.0.2"
     }
 
     // ADR-012: keys live in ~/.android-keys/, passwords in ~/.gradle/gradle.properties, never in the repo.
@@ -52,6 +52,9 @@ android {
     productFlavors {
         create("play") {
             dimension = "store"
+            // Play has its own package name so it never collides with F-Droid's io.github.ukpratik.lanternsudoku
+            // (Android developer verification only accepts F-Droid's key for that name). ADR-015.
+            applicationIdSuffix = ".play"
             signingConfigs.findByName("upload")?.let { signingConfig = it }
         }
         create("fdroid") {

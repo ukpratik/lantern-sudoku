@@ -133,6 +133,8 @@ The metadata uses the category **Puzzle Game** (fdroiddata's `config/categories.
 
 ## Google Play: first release (one time, after the organisation developer account is verified)
 
+**Package name on Play: `io.github.ukpratik.lanternsudoku.play`** (product ADR-015), published from the UK GROUP organisation account. F-Droid and GitHub keep `io.github.ukpratik.lanternsudoku`.
+
 1. Create the app: name "Lantern Sudoku: Learn & Unwind", default language English (United States), **Game**, **Free**.
 2. Accept Play App Signing (Google-managed key). The first AAB registers the upload key.
 3. Store listing from `fastlane/metadata/android/en-US/` (category **Puzzle**). Privacy policy: https://ukpratik.github.io/lantern-sudoku/privacy/

@@ -1,0 +1,1 @@
+No changes to the game. This release prepares a separate Google Play edition with its own app ID, so the Play and F-Droid versions can sit side by side.
