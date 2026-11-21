@@ -17,8 +17,8 @@ android {
         // (10000 − 100 + N = 9901..9903, D-035). A patch has no free code below it (1.0.0 = 10000, 1.0.1 = 10001), so
         // 1.0.1's candidates use 1.0.1's own code: they upgrade 1.0.0, are never published, and the final 1.0.1 is
         // built with the same code (D-044).
-        versionCode = 10002
-        versionName = "1.0.2"
+        versionCode = 10003
+        versionName = "1.0.3"
     }
 
     // ADR-012: keys live in ~/.android-keys/, passwords in ~/.gradle/gradle.properties, never in the repo.

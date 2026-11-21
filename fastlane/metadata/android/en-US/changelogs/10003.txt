@@ -1,0 +1,1 @@
+Lantern Sudoku can now be installed on tablets, Chromebooks and other landscape-first devices, where it runs in portrait. No other changes.
