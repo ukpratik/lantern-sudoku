@@ -1,34 +1,40 @@
-Lantern Sudoku is a quiet sudoku for short, calm sessions. It has no ads, no account and no game over, and it works fully offline.
+Lantern Sudoku is a calm, classic 9x9 sudoku for short, quiet sessions. It has no ads, no account and no game over, and it works fully offline.
 
+<b>Hints that teach, not just tell</b>
 When you're stuck, a hint lights the next step instead of giving the answer away. You choose how much help you want:
-• Where to look: the area where the next step is.
+• Where to look: the area of the next step.
 • Why: the technique by name, with a short explanation and the cells that matter highlighted.
-• The digit, only if you want it.
-If a digit on the board is wrong, the hint tells you that first, so you never chase a step built on a mistake.
+• The digit, only if you ask for it.
+If a digit on the board is wrong, the hint says so first, so you never chase a step built on a mistake. Every technique has its own Learn page, from singles, pairs and triples to pointing, box/line reduction and X-Wing. It's a gentle way to learn sudoku as a beginner, or to finally understand the moves you've been guessing.
 
-Honest puzzles
+<b>Honest difficulty</b>
 • Four levels: Easy, Medium, Hard and Expert.
-• Every puzzle has exactly one solution and never needs guessing.
+• Every puzzle has exactly one solution and can be solved by logic alone, with no guessing.
 • Each puzzle is graded by the hardest technique it needs, so a level means the same thing every time.
 • More than 11,000 puzzles come with the app. Nothing is downloaded.
 
-A daily puzzle
-• One puzzle a day, the same for everyone, with a streak and days played.
+<b>A daily sudoku</b>
+• One puzzle a day, the same for everyone, with a gentle streak and days played.
+• Catch up on past days you missed.
 • Share a spoiler-free result card if you like. Nothing is shared unless you tap Share.
 
-Made to be easy on the eyes
-• Large, clear digits, with a Larger digits option.
+<b>Easy on the eyes</b>
+• Large, clear digits, plus a Larger digits option.
 • Light, Dark and two high-contrast themes.
-• Works with large system text and with TalkBack.
+• Works with large system text and TalkBack.
 
-Never punished
+<b>Never punished</b>
 • Mistakes can be shown or hidden. A mistake limit is optional and off by default.
-• Your game is saved after every move. Undo, redo, erase and notes that tidy themselves when you place a digit.
+• Your game is saved after every move.
+• Undo, redo, erase, and pencil-mark notes that tidy themselves when you place a digit.
 • A calm summary when you finish, and statistics per level.
 
-Private by design
+<b>Private by design</b>
 • No ads, no analytics, no crash reporting, no account.
-• The app asks for no permissions, not even internet access.
+• The app asks for no permissions, not even internet access, so it plays the same on a flight or in a basement.
 • Your games stay on your phone. If Android backup is on, Android may copy them to your own Google account; the app itself never uploads anything.
 
-Lantern Sudoku is free and open source software (GPL-3.0-or-later).
+<b>Free and open source</b>
+Lantern Sudoku is free software (GPL-3.0-or-later). There are no in-app purchases. The source code is public on GitHub and the app is also on F-Droid.
+
+Made by one developer who wanted a sudoku that respects your time and attention. Feedback is welcome by email or on GitHub.
