@@ -1,0 +1,6 @@
+# Crawlers only read robots.txt at the host root (https://ukpratik.github.io/robots.txt),
+# so this file is informational; submit the sitemap in Search Console as well.
+User-agent: *
+Allow: /
+
+Sitemap: https://ukpratik.github.io/lantern-sudoku/sitemap.xml

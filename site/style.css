@@ -17,3 +17,7 @@ h2 { font-size: 1.15rem; margin: 32px 0 8px; }
 ul { padding-left: 1.2em; }
 li { margin: 6px 0; }
 footer { margin-top: 48px; font-size: 0.9rem; color: var(--muted); }
+.badges { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; margin: 24px 0 4px; }
+.badges a { display: inline-block; line-height: 0; }
+.badges img { width: auto; height: 64px; }
+footer p { margin: 4px 0; }

@@ -5,6 +5,11 @@
 No ads, no account, no tracking, no game over, and **no permissions at all**, not even internet access. Free and open source under GPL-3.0-or-later.
 
 <p>
+  <a href="https://play.google.com/store/apps/details?id=io.github.ukpratik.lanternsudoku.play&amp;utm_source=github&amp;utm_medium=badge"><img src="site/badge-google-play.png" height="64" alt="Get it on Google Play"></a>
+  <a href="https://f-droid.org/packages/io.github.ukpratik.lanternsudoku/"><img src="site/badge-fdroid.png" height="64" alt="Get it on F-Droid"></a>
+</p>
+
+<p>
   <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/1.png" width="180" alt="A game in progress with a digit locked for quick entry">
   <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/2.png" width="180" alt="A hint explaining the technique, with the cells that matter highlighted">
   <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/3.png" width="180" alt="A hint pointing out a wrong digit before anything else">
@@ -27,9 +32,9 @@ Lantern Sudoku is a quiet sudoku for short, calm sessions.
 
 | Where | Status |
 |---|---|
+| [Google Play](https://play.google.com/store/apps/details?id=io.github.ukpratik.lanternsudoku.play&utm_source=github&utm_medium=badge) | Available, as "Lantern Sudoku: Learn & Unwind" (package `io.github.ukpratik.lanternsudoku.play`). |
+| [F-Droid](https://f-droid.org/packages/io.github.ukpratik.lanternsudoku/) | Available (package `io.github.ukpratik.lanternsudoku`), built from source by F-Droid. |
 | [GitHub Releases](https://github.com/ukpratik/lantern-sudoku/releases) | Available: signed APK with a SHA-256 checksum. Verify the signer with `apksigner verify --print-certs`; the fingerprint is in [`docs/RELEASING.md`](docs/RELEASING.md#certificate-fingerprints). |
-| F-Droid | Coming soon |
-| Google Play | Coming soon |
 
 Android 8.0 (API 26) or newer. Each channel has its own signing key, so to switch channels you need to uninstall first.
 
