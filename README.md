@@ -86,6 +86,10 @@ docs/                RELEASING.md
 
 Bug reports and pull requests are welcome. Please read [`CONTRIBUTING.md`](CONTRIBUTING.md) first; the short version is: no permissions, FOSS dependencies only, tests with the code, and `scripts/ci.sh` green.
 
+## Support
+
+Lantern Sudoku is free, with no ads and no tracking. If it's useful to you, you can support its development on [GitHub Sponsors](https://github.com/sponsors/ukpratik). Starring the repo or telling a friend about it helps too.
+
 ## Licence
 
 GNU General Public License v3.0 or later. See [`LICENSE`](LICENSE). Bundled fonts (Fraunces, Figtree) are under the SIL Open Font License 1.1, and the icons are Material Symbols (Apache-2.0).
