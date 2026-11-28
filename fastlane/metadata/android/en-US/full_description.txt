@@ -31,7 +31,8 @@ If a digit on the board is wrong, the hint says so first, so you never chase a s
 
 <b>Private by design</b>
 • No ads, no analytics, no crash reporting, no account.
-• The app asks for no permissions, not even internet access, so it plays the same on a flight or in a basement.
+• No internet access, so it plays the same on a flight or in a basement. The only permission is Google Play billing, used only if you choose to leave a tip.
+• Optional tips in Settings › Support Lantern. They unlock nothing: every feature stays free for everyone.
 • Your games stay on your phone. If Android backup is on, Android may copy them to your own Google account; the app itself never uploads anything.
 
 <b>Free and open source</b>

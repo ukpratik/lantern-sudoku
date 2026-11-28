@@ -25,6 +25,8 @@ import io.github.ukpratik.lanternsudoku.engine.technique.Technique
 import io.github.ukpratik.lanternsudoku.feature.learn.LearnPage
 import io.github.ukpratik.lanternsudoku.feature.learn.LearnScreen
 import io.github.ukpratik.lanternsudoku.feature.settings.LicencesScreen
+import io.github.ukpratik.lanternsudoku.feature.support.SupportScreen
+import io.github.ukpratik.lanternsudoku.feature.support.SupportViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
@@ -74,7 +76,11 @@ fun LanternNavHost(container: AppContainer, openGame: Flow<Long>, nav: NavHostCo
         }
         composable<SettingsRoute> {
             val vm: SettingsViewModel = viewModel(factory = viewModelFactory { initializer { SettingsViewModel(container.settingsRepository) } })
-            SettingsScreen(vm, onBack = { nav.popBackStack() }, onOpenLicences = { nav.navigate(LicencesRoute) }, onOpenLearn = { nav.navigate(LearnRoute) })
+            SettingsScreen(vm, onBack = { nav.popBackStack() }, onOpenLicences = { nav.navigate(LicencesRoute) }, onOpenLearn = { nav.navigate(LearnRoute) }, onOpenSupport = { nav.navigate(SupportRoute) })
+        }
+        composable<SupportRoute> {
+            val vm: SupportViewModel = viewModel(factory = viewModelFactory { initializer { SupportViewModel(container.tipJar) } })
+            SupportScreen(vm, onBack = { nav.popBackStack() })
         }
         composable<LicencesRoute> { LicencesScreen(onBack = { nav.popBackStack() }) }
         composable<LearnRoute> { LearnScreen(onBack = { nav.popBackStack() }, onOpen = { nav.navigate(LearnPageRoute(it.name)) }) }

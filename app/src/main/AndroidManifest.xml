@@ -3,7 +3,9 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
-    <!-- Lantern Sudoku requests NO permissions. CI fails on any merged-in permission (ADR-008). -->
+    <!-- Lantern Sudoku requests NO user permissions and never uses the internet. CI fails on any merged-in permission
+         (ADR-008), except com.android.vending.BILLING in the play flavour (Play Billing for the optional tip jar; it
+         only talks to the Play Store app). These removals also keep Play Billing's bundled telemetry offline. -->
     <uses-permission android:name="android.permission.INTERNET" tools:node="remove" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" tools:node="remove" />
 

@@ -2,7 +2,7 @@
 
 **Calm, readable, offline sudoku for Android, with hints that teach.**
 
-No ads, no account, no tracking, no game over, and **no permissions at all**, not even internet access. Free and open source under GPL-3.0-or-later.
+No ads, no account, no tracking, no game over, and **no internet access**. The F-Droid and GitHub versions ask for no permissions at all; the Google Play version asks only for Google Play billing, for optional tips. Free and open source under GPL-3.0-or-later.
 
 <p>
   <a href="https://play.google.com/store/apps/details?id=io.github.ukpratik.lanternsudoku.play&amp;utm_source=github&amp;utm_medium=badge"><img src="site/badge-google-play.png" height="64" alt="Get it on Google Play"></a>
@@ -40,7 +40,7 @@ Android 8.0 (API 26) or newer. Each channel has its own signing key, so to switc
 
 ## Privacy
 
-The app requests **no Android permissions**; CI fails the build if one appears in a release APK. There are no ads, analytics, crash reporting or accounts, and it never connects to the internet. Your games stay on your phone; if Android backup is on, Android may copy them to your own Google account. Full policy: <https://ukpratik.github.io/lantern-sudoku/privacy/>.
+The F-Droid and GitHub versions request **no Android permissions**. The Google Play version requests exactly one, `com.android.vending.BILLING`, so you can leave an optional tip (Settings › Support Lantern); it lets the app talk to the Play Store app on your phone and nothing else. CI fails the build if any other permission appears in a release APK. There are no ads, analytics, crash reporting or accounts, and it never connects to the internet. Your games stay on your phone; if Android backup is on, Android may copy them to your own Google account. Full policy: <https://ukpratik.github.io/lantern-sudoku/privacy/>.
 
 ## Build, run, test
 

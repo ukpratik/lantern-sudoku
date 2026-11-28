@@ -144,6 +144,8 @@
     <string name="settings_larger_digits">Larger digits</string>
     <string name="settings_larger_digits_summary">Bigger numbers on the board and keys</string>
     <string name="settings_about_header">About</string>
+    <string name="settings_support">Support Lantern</string>
+    <string name="settings_support_summary">Leave a small tip. Everything stays free.</string>
     <string name="settings_privacy">Privacy</string>
     <string name="settings_privacy_summary">We never collect your data. Android backup can copy it to your Google account.</string>
     <string name="settings_version">Version %1$s</string>
@@ -325,4 +327,23 @@
     <string name="learn_intro">Every hint uses one of these. They go from the first Easy steps to Expert.</string>
     <string name="learn_example">Example</string>
     <string name="learn_example_description">Example board for %1$s. %2$s</string>
+
+    <!-- Settings › Support Lantern (tip jar). play: Google Play tips; fdroid: GitHub Sponsors link. -->
+    <string name="support_title">Support Lantern</string>
+    <string name="support_heading">Keep the lantern lit</string>
+    <string name="support_body">Lantern Sudoku is free, with no ads, no tracking and nothing locked. If it brings you a calm moment, a small tip helps keep it that way.</string>
+    <string name="support_tip_small">Small tip</string>
+    <string name="support_tip_small_summary">A cup of chai for the developer</string>
+    <string name="support_tip_medium">Kind tip</string>
+    <string name="support_tip_medium_summary">Coffee and a thank-you</string>
+    <string name="support_tip_large">Generous tip</string>
+    <string name="support_tip_large_summary">Helps pay for test devices and updates</string>
+    <string name="support_play_note">Tips are one-time payments through Google Play. They don\'t unlock anything: every feature stays free for everyone.</string>
+    <string name="support_unavailable">Tips aren\'t available right now. Check that Google Play is installed and signed in, then try again.</string>
+    <string name="support_try_again">Try again</string>
+    <string name="support_external">This version has no in-app payments. If you\'d like to support Lantern, you can sponsor the developer on GitHub.</string>
+    <string name="support_open_sponsors">Open GitHub Sponsors</string>
+    <string name="support_thanks">Thank you! Your tip means a lot. ♥</string>
+    <string name="support_pending">Your tip is pending. It completes once your payment goes through.</string>
+    <string name="support_failed">That didn\'t go through, and you haven\'t been charged. Please try again.</string>
 </resources>

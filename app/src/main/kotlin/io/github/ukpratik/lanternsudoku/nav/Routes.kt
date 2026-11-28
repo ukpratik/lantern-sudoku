@@ -17,6 +17,10 @@ data object SettingsRoute
 @Serializable
 data object LicencesRoute
 
+/** Settings › Support Lantern (tip jar). */
+@Serializable
+data object SupportRoute
+
 /** Settings › Learn techniques (US-026). */
 @Serializable
 data object LearnRoute

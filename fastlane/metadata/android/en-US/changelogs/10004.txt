@@ -1,0 +1,2 @@
+• New: Settings › Support Lantern. If you enjoy the app, you can leave an optional tip. Tips unlock nothing; every feature stays free.
+• Google Play version only: tips go through Google Play billing, the one permission this version now asks for. Still no internet access.

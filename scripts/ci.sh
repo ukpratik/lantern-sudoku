@@ -24,10 +24,9 @@ step "3/6 Android Lint, both flavours"
 step "4/6 Release builds, both flavours (R8) + AboutLibraries licence gate"
 "${GRADLE[@]}" assemblePlayRelease assembleFdroidRelease bundlePlayRelease
 
-step "5/6 Permission gate: no permissions in either release APK"
-scripts/check-permissions.sh \
-  app/build/outputs/apk/play/release/app-play-release*.apk \
-  app/build/outputs/apk/fdroid/release/app-fdroid-release*.apk
+step "5/6 Permission gate: none in the fdroid APK; only Play Billing (tip jar) in the play APK"
+scripts/check-permissions.sh app/build/outputs/apk/fdroid/release/app-fdroid-release*.apk
+scripts/check-permissions.sh --allow com.android.vending.BILLING app/build/outputs/apk/play/release/app-play-release*.apk
 
 step "6/6 Size gate: Play download ≤ 10 MB (NFR-003)"
 scripts/check-size.sh app/build/outputs/bundle/playRelease/app-play-release.aab 10000000

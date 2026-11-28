@@ -116,7 +116,7 @@ class SettingsViewModel(private val repository: SettingsRepository) : ViewModel(
  * and persists. PRD v1.3: the limit is only available while Show mistakes is on. Sounds stays hidden (D-020, D-044).
  */
 @Composable
-fun SettingsScreen(vm: SettingsViewModel, onBack: () -> Unit, onOpenLicences: () -> Unit = {}, onOpenLearn: () -> Unit = {}) {
+fun SettingsScreen(vm: SettingsViewModel, onBack: () -> Unit, onOpenLicences: () -> Unit = {}, onOpenLearn: () -> Unit = {}, onOpenSupport: () -> Unit = {}) {
     val s by vm.settings.collectAsStateWithLifecycle()
     val scheme = MaterialTheme.colorScheme
     val view = LocalView.current
@@ -238,6 +238,7 @@ fun SettingsScreen(vm: SettingsViewModel, onBack: () -> Unit, onOpenLicences: ()
                     HorizontalDivider(Modifier.padding(vertical = 8.dp), color = scheme.outlineVariant)
 
                     SectionHeader(R.string.settings_about_header)
+                    LinkRow(R.drawable.ic_favorite, R.string.settings_support, R.string.settings_support_summary, null, onOpenSupport)
                     Row(Modifier.fillMaxWidth().heightIn(min = 64.dp).padding(vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
                         RowIcon(R.drawable.ic_privacy)
                         Column(Modifier.weight(1f)) {

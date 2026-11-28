@@ -17,8 +17,8 @@ android {
         // (10000 − 100 + N = 9901..9903, D-035). A patch has no free code below it (1.0.0 = 10000, 1.0.1 = 10001), so
         // 1.0.1's candidates use 1.0.1's own code: they upgrade 1.0.0, are never published, and the final 1.0.1 is
         // built with the same code (D-044).
-        versionCode = 10003
-        versionName = "1.0.3"
+        versionCode = 10004
+        versionName = "1.0.4"
     }
 
     // ADR-012: keys live in ~/.android-keys/, passwords in ~/.gradle/gradle.properties, never in the repo.
@@ -128,10 +128,10 @@ aboutLibraries {
     license {
         strictMode = com.mikepenz.aboutlibraries.plugin.StrictMode.FAIL
         allowedLicenses.addAll("Apache-2.0", "MIT", "BSD-2-Clause", "BSD-3-Clause", "OFL-1.1")
-        // Play build only (review prompt, M6). Allowed for these Google groups and nothing else.
+        // Play build only (review prompt, M6; tip jar via Play Billing). Allowed for these Google groups and nothing else.
         allowedLicensesMap = mapOf(
             "PCSDKToS" to listOf("com.google.android.play"),
-            "ASDKL" to listOf("com.google.android.gms"),
+            "ASDKL" to listOf("com.google.android.gms", "com.android.billingclient"),
         )
     }
 }
@@ -154,6 +154,8 @@ dependencies {
     baselineProfile(project(":baselineprofile"))
     // ADR-008: proprietary code only in the play flavour (US-025 review prompt); fdroid gets a no-op.
     "playImplementation"(libs.play.review.ktx)
+    // Tip jar (Settings › Support Lantern): Play Billing in the play flavour only; fdroid links to GitHub Sponsors instead.
+    "playImplementation"(libs.play.billing)
 
     testImplementation(libs.junit)
     testImplementation(libs.truth)

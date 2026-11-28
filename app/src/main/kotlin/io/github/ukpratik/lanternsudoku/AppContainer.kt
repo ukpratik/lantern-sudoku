@@ -22,6 +22,8 @@ import io.github.ukpratik.lanternsudoku.data.Settings
 import io.github.ukpratik.lanternsudoku.feature.game.CoachMarkStore
 import io.github.ukpratik.lanternsudoku.platform.RatePrompt
 import io.github.ukpratik.lanternsudoku.platform.StoreReview
+import io.github.ukpratik.lanternsudoku.platform.StoreTips
+import io.github.ukpratik.lanternsudoku.platform.TipJar
 
 /**
  * Manual dependency injection (ADR-007). Everything is `by lazy`, so nothing heavy happens at startup (NFR-001).
@@ -57,6 +59,9 @@ class AppContainer(context: Context) {
     val ratePrompt: RatePrompt by lazy {
         RatePrompt(settingsRepository, { gameRepository.completedCount() }, { today.refresh().toEpochDay() }, StoreReview.prompter(appContext))
     }
+
+    /** Settings › Support Lantern: Play Billing tips (play) or a GitHub Sponsors link (fdroid). Connects on first use. */
+    val tipJar: TipJar by lazy { StoreTips.tipJar(appContext) }
 
     /** Read once at start-up (LanternApp) so the first frame has the saved theme (LLD §2.2); null until then. */
     val settingsState: StateFlow<Settings?> by lazy { settingsRepository.settings.stateIn(appScope, SharingStarted.Eagerly, null) }

@@ -4,7 +4,7 @@ Thanks for helping. Bug reports, accessibility feedback and pull requests are al
 
 A few rules keep the app private, small and maintainable.
 
-1. **No permissions, no network.** Nothing may add `INTERNET` or any other permission. `scripts/check-permissions.sh` fails the build if a release APK's merged manifest requests any permission (the allowlist is empty; only the app-private `DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION` that AndroidX adds is tolerated).
+1. **No permissions, no network.** Nothing may add `INTERNET` or any other permission. `scripts/check-permissions.sh` fails the build if a release APK's merged manifest requests any permission it wasn't told to allow: none for fdroid, only `com.android.vending.BILLING` (the optional tip jar) for play. The app-private `DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION` that AndroidX adds is tolerated.
 2. **Licences.** Dependencies must be FOSS and GPL-3.0-compatible (Apache-2.0, MIT, BSD, OFL). The AboutLibraries licence gate fails the release build otherwise. Proprietary code is allowed only in the `play` flavour (today: the In-App Review prompt); the `fdroid` flavour must stay free of it.
 3. **Architecture.**
    - `:engine` is pure Kotlin with no Android dependency: model, solver, techniques, hints and the game reducer live there and are unit-tested on the JVM.
